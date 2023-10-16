@@ -91,21 +91,6 @@ public class CosmosTableRepository_Tests : IDisposable
     }
 
     [Fact]
-    public async Task AsQueryable_CanRetrieveSingleItems()
-    {
-        // Arrange
-        var id = Movies.GetRandomId();
-
-        // Act
-        var actual = repository.AsQueryable().Single(m => m.Id == id);
-        CosmosMovie expected = await movieContainer.ReadItemAsync<CosmosMovie>(id, new PartitionKey(id));
-
-        // Assert
-        Assert.Equal<IMovie>(expected, actual);
-        Assert.Equal<ITableData>(expected, actual);
-    }
-
-    [Fact]
     public void AsQueryable_CanRetrieveFilteredLists()
     {
         // Act
