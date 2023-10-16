@@ -8,7 +8,7 @@ namespace api.Controllers;
 [Route("tables/todoitem")]
 public class TodoItemController : TableController<TodoItem>
 {
-    public TodoItemController(CosmosRepository<TodoItem> repository) : base(repository)
+    public TodoItemController(CosmosTableRepository<TodoItem> repository) : base(repository)
     {
         Options = new TableControllerOptions { PageSize = 5 };
     }
