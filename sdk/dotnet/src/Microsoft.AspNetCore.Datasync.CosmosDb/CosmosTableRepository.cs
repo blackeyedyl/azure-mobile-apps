@@ -209,14 +209,16 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                var partitionKey = entity.BuildPartitionKey(partitionKeyPropertyNames);
-                TEntity storeEntity = await container.ReadItemAsync<TEntity>(entity.Id, partitionKey, cancellationToken: token);
+                // TODO the TableController just called this, can we make this more efficient?
+                TEntity storeEntity = await ReadAsync(entity.Id, token);
                 if (PreconditionFailed(version, storeEntity.Version))
                 {
                     throw new PreconditionFailedException(storeEntity);
                 }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
                 entity.EntityTag = entity.UpdatedAt.ToUnixTimeSeconds().ToString();
+                // Ensure we are using the actual ID not the compound ID
+                entity.Id = storeEntity.Id;
                 // TODO do we have etag to check for here?
                 TEntity newEntity = await container.ReplaceItemAsync(entity, entity.Id, cancellationToken: token);
                 entity.UpdatedAt = newEntity.UpdatedAt;
