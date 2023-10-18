@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             }
 
             this.container = container;
-            this.partitionKeyPropertyNames = partitionKeyPropertyNames ?? new() { "Id" };
+            this.partitionKeyPropertyNames = partitionKeyPropertyNames ?? new() { "id" };
             ParseIdAndPartitionKey = parseIdAndPartitionKey ?? CosmosUtils.DefaultParseIdAndPartitionKey;
         }
 

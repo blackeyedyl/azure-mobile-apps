@@ -13,12 +13,12 @@ internal static class CosmosUtils
     /// Expected formats:
     /// - "id" => (id, new PartitionKey(id))
     /// - "id:customerId" => (id, new PartitionKey(customerId))
-    /// - "id:customerId+employeeId" => (id, new PartitionKeyBuilder().Add(customerId).Add(employeeId).Build())
+    /// - "id:customerId|employeeId" => (id, new PartitionKeyBuilder().Add(customerId).Add(employeeId).Build())
     /// </summary>
     /// <param name="idPartitionKeyString">Partition key to parse, expected formats:
     /// - "id" => (id, new PartitionKey(id))
     /// - "id:customerId" => (id, new PartitionKey(customerId))
-    /// - "id:customerId+employeeId" => (id, new PartitionKeyBuilder().Add(customerId).Add(employeeId).Build())</param>
+    /// - "id:customerId|employeeId" => (id, new PartitionKeyBuilder().Add(customerId).Add(employeeId).Build())</param>
     /// <returns></returns>
     /// <exception cref="BadRequestException"></exception>
     internal static (string id, PartitionKey partitionKey) DefaultParseIdAndPartitionKey(string idPartitionKeyString)
@@ -45,7 +45,7 @@ internal static class CosmosUtils
             throw new BadRequestException();
         }
         
-        var keys = keysPart.Split('+');
+        var keys = keysPart.Split('|');
         if (keys.Length == 1)
         {
             return (id, new PartitionKey(keys[0]));

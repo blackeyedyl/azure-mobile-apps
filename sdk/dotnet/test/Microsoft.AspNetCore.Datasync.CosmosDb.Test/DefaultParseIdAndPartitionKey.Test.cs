@@ -88,7 +88,7 @@ public class DefaultParseIdAndPartitionKey_Tests
     public void ShouldReturnIdAndCompositePartitionKeyWhenMultipleKeys()
     {
         // Arrange
-        var input = "id:customerId+employeeId";
+        var input = "id:customerId|employeeId";
         var expectedPartitionKey = new PartitionKeyBuilder()
             .Add("customerId")
             .Add("employeeId")
