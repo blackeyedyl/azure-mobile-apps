@@ -94,9 +94,16 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             try
             {
                 entity.Id ??= Guid.NewGuid().ToString("N");
+                var originalId = entity.Id;
+                try
+                {
+                    entity.Id = ParseIdAndPartitionKey(entity.Id).id;
+                }
+                catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
                 entity.EntityTag = entity.UpdatedAt.ToUnixTimeSeconds().ToString();
                 await container.CreateItemAsync(entity, cancellationToken: token);
+                entity.Id = originalId;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.Conflict)
             {
@@ -218,11 +225,13 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
                 entity.EntityTag = entity.UpdatedAt.ToUnixTimeSeconds().ToString();
                 // Ensure we are using the actual ID not the compound ID
+                var originalId = entity.Id;
                 entity.Id = storeEntity.Id;
                 // TODO do we have etag to check for here?
                 TEntity newEntity = await container.ReplaceItemAsync(entity, entity.Id, cancellationToken: token);
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
+                entity.Id = originalId;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.NotFound)
             {
