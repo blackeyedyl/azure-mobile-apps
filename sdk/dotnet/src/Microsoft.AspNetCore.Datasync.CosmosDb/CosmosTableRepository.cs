@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
     /// data in a Cosmos database.
     /// </summary>
     /// <typeparam name="TEntity">The type of entity being stored.</typeparam>
-    public class CosmosTableRepository<TEntity> : IRepository<TEntity> where TEntity : CosmosTableData, ITableData
+    public class CosmosTableRepository<TEntity> : IRepository<TEntity> where TEntity : class, ITableData
     {
         /// <summary>
         /// Container where the <see cref="TEntity"/> is stored.
@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// </summary>
         /// <returns>An <see cref="IQueryable{T}"/> for the entities in the data store.</returns>
         public IQueryable<TEntity> AsQueryable() => container.GetItemLinqQueryable<TEntity>(true);
-
+        
         /// <summary>
         /// Returns an unexecuted <see cref="IQueryable{T}"/> that represents the data store as a whole.
         /// This is adjusted by the <see cref="TableController{TEntity}"/> to account for filtering and
@@ -101,8 +101,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 }
                 catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
-                entity.EntityTag = entity.UpdatedAt.ToUnixTimeSeconds().ToString();
-                await container.CreateItemAsync(entity, cancellationToken: token);
+                TEntity newEntity = await container.CreateItemAsync(entity, cancellationToken: token);
+                entity.UpdatedAt = newEntity.UpdatedAt;
+                entity.Version = newEntity.Version;
                 entity.Id = originalId;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.Conflict)
@@ -182,7 +183,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                return await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cancellationToken: token);
+                TEntity entity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cancellationToken: token);
+                entity.Id = id;
+                return entity;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.NotFound)
             {
@@ -222,12 +225,14 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 {
                     throw new PreconditionFailedException(storeEntity);
                 }
-                entity.UpdatedAt = DateTimeOffset.UtcNow;
-                entity.EntityTag = entity.UpdatedAt.ToUnixTimeSeconds().ToString();
-                // Ensure we are using the actual ID not the compound ID
                 var originalId = entity.Id;
-                entity.Id = storeEntity.Id;
-                // TODO do we have etag to check for here?
+                try
+                {
+                    entity.Id = ParseIdAndPartitionKey(entity.Id).id;
+                }
+                catch { }
+                entity.UpdatedAt = DateTimeOffset.UtcNow;
+                // TODO can compare etag versions as part of options
                 TEntity newEntity = await container.ReplaceItemAsync(entity, entity.Id, cancellationToken: token);
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;

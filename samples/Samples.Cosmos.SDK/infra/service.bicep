@@ -50,7 +50,7 @@ resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
       id: 'TodoItems'
       partitionKey: {
         paths: [
-          '/Id'
+          '/UserId'
         ]
         kind: 'Hash'
       }
@@ -74,7 +74,7 @@ resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
               order: 'ascending'
             }
             {
-              path: '/Id'
+              path: '/id'
               order: 'ascending'
             }
           ]

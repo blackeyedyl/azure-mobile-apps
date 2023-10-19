@@ -12,7 +12,7 @@ public static class AspNetCoreExtensions
         var database = client.GetDatabase(databaseName);
         var todoItemsContainer = database.GetContainer("TodoItems");
 
-        services.AddSingleton(new CosmosTableRepository<TodoItem>(todoItemsContainer));
+        services.AddSingleton(new CosmosTableRepository<TodoItem>(todoItemsContainer, new() { "UserId" }));
 
         return services;
     }

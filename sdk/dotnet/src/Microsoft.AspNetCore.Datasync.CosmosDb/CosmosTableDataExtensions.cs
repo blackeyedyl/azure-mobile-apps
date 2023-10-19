@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public static PartitionKey BuildPartitionKey(this CosmosTableData entity, List<string> partitionKeyPropertyNames)
+        public static PartitionKey BuildPartitionKey(this ITableData entity, List<string> partitionKeyPropertyNames)
         {
             ArgumentNullException.ThrowIfNull(partitionKeyPropertyNames, nameof(partitionKeyPropertyNames));
             if (!partitionKeyPropertyNames.Any()) 

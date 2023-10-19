@@ -19,6 +19,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The globally unique ID for this entity.
         /// </summary>
+        //public string Id { get; set; }
         [JsonProperty("id")]
         public string Id { get; set; }
 
@@ -39,7 +40,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The ETag for the entity.
         /// </summary>
-        [JsonIgnore]
+        [JsonProperty("_etag")]
         public string EntityTag { get; set; }
 
         /// <summary>
