@@ -3,8 +3,6 @@
 
 using Newtonsoft.Json;
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 
@@ -21,7 +19,6 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The globally unique ID for this entity.
         /// </summary>
-        [Key]
         [JsonProperty("id")]
         public string Id { get; set; }
 
@@ -33,7 +30,6 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The row version for the entity.
         /// </summary>
-        [NotMapped]
         public byte[] Version
         {
             get => Encoding.UTF8.GetBytes(EntityTag ?? string.Empty);
@@ -43,7 +39,6 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The ETag for the entity.
         /// </summary>
-        [Timestamp]
         [JsonIgnore]
         public string EntityTag { get; set; }
 
