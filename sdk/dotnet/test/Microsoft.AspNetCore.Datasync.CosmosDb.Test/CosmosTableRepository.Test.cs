@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb.Test;
 [ExcludeFromCodeCoverage]
 public class CosmosTableRepository_Tests : IDisposable
 {
-    private readonly CosmosMovie blackPantherMovie = new()
+    private readonly CosmosMovieWithPartitionKey blackPantherMovie = new()
     {
         BestPictureWinner = true,
         Duration = 134,
@@ -17,14 +17,19 @@ public class CosmosTableRepository_Tests : IDisposable
         Title = "Black Panther",
         Year = 2018
     };
+
     private Container movieContainer;
-    private CosmosTableRepository<CosmosMovie> repository;
+    private CosmosTableRepository<CosmosMovieWithPartitionKey> repository;
     private List<string> partitionKeyPropertyNames = new() { "Rating" };
 
     public CosmosTableRepository_Tests()
     {
         movieContainer = CosmosDbHelper.GetContainer().Result;
-        repository = new(movieContainer, partitionKeyPropertyNames);
+        var itemRequestOptions = new ItemRequestOptions
+        {
+            PreTriggers = new List<string> { "CleanId" }
+        };
+        repository = new(movieContainer, partitionKeyPropertyNames, itemRequestOptions);
     }
 
     [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "Test Case - no inherited classes")]
@@ -46,7 +51,7 @@ public class CosmosTableRepository_Tests : IDisposable
     public void CosmosTableRepository_Throws_WithNullContainer()
     {
         // Assert
-        Assert.Throws<ArgumentNullException>(() => new CosmosTableRepository<CosmosMovie>(null));
+        Assert.Throws<ArgumentNullException>(() => new CosmosTableRepository<CosmosMovieWithPartitionKey>(null));
     }
 
     // TODO are these applicable to Cosmos?
@@ -76,7 +81,7 @@ public class CosmosTableRepository_Tests : IDisposable
         var actual = repository.AsQueryable();
         
         // Assert
-        Assert.IsAssignableFrom<IQueryable<CosmosMovie>>(actual);
+        Assert.IsAssignableFrom<IQueryable<CosmosMovieWithPartitionKey>>(actual);
         Assert.Equal(Movies.Count, actual.Count());
         Assert.Contains(":", actual.ToList().First().Id);
     }
@@ -88,7 +93,7 @@ public class CosmosTableRepository_Tests : IDisposable
         var actual = await repository.AsQueryableAsync();
        
         // Assert
-        Assert.IsAssignableFrom<IQueryable<CosmosMovie>>(actual);
+        Assert.IsAssignableFrom<IQueryable<CosmosMovieWithPartitionKey>>(actual);
         Assert.Equal(Movies.Count, actual.Count());
         Assert.Contains(":", actual.ToList().First().Id);
     }
@@ -125,16 +130,16 @@ public class CosmosTableRepository_Tests : IDisposable
     public async Task CreateAsync_ThrowsConflict()
     {
         // Arrange
-        var movie = Movies.GetRandomMovie<CosmosMovie>();
+        var movie = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
         var item = blackPantherMovie.Clone();
         item.Id = movie.Id;
-        //item.Id = movie.TranslateToDtoId(partitionKeyPropertyNames);
         item.Rating = movie.Rating;
         
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(() => repository.CreateAsync(item));
         
-        CosmosMovie entity = await movieContainer.ReadItemAsync<CosmosMovie>(movie.Id, new PartitionKey(movie.Rating));
+        var (id, partitionKey) = CosmosUtils.DefaultParseIdAndPartitionKey(movie.Id);
+        CosmosMovieWithPartitionKey entity = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, partitionKey);
         Assert.NotSame(entity, ex.Payload);
         Assert.Equal(entity, ex.Payload as IMovie);
         Assert.Equal(entity, ex.Payload as ITableData);
@@ -193,14 +198,13 @@ public class CosmosTableRepository_Tests : IDisposable
     public async Task DeleteAsync_Deletes_WhenNoVersion()
     {
         // Arrange
-        var item = Movies.GetRandomMovie<CosmosMovie>();
-        //item.Id = movie.TranslateToDtoId(partitionKeyPropertyNames);
+        var item = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
 
         // Act
         await repository.DeleteAsync(item.Id);
 
         // Assert
-        var ex = await Assert.ThrowsAsync<CosmosException>(() => movieContainer.ReadItemAsync<CosmosMovie>(item.Id, new(item.Id)));
+        var ex = await Assert.ThrowsAsync<CosmosException>(() => movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(item.Id, new(item.Id)));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, ex.StatusCode);
     }
 
@@ -210,14 +214,14 @@ public class CosmosTableRepository_Tests : IDisposable
     //{
     //    // Arrange
     //    var id = Movies.GetRandomId();
-    //    CosmosMovie entity = await movieContainer.ReadItemAsync<CosmosMovie>(id, new PartitionKey(id));
+    //    CosmosMovieWithPartitionKey entity = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, new PartitionKey(id));
     //    var version = Guid.NewGuid().ToByteArray();
     //    entity.Version = null;
 
     //    // Act & Assert
     //    var ex = await Assert.ThrowsAsync<PreconditionFailedException>(() => repository.DeleteAsync(id, version));
 
-    //    entity = await movieContainer.ReadItemAsync<CosmosMovie>(id, new PartitionKey(id));
+    //    entity = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, new PartitionKey(id));
     //    Assert.NotNull(entity);
     //    Assert.NotNull(ex.Payload);
     //    Assert.NotSame(entity, ex.Payload);
@@ -227,14 +231,15 @@ public class CosmosTableRepository_Tests : IDisposable
     public async Task DeleteAsync_Throws_WhenEntityVersionsDiffer()
     {
         // Arrange
-        var item = Movies.GetRandomMovie<CosmosMovie>();
+        var item = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
         var version = Guid.NewGuid().ToByteArray();
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<PreconditionFailedException>(() => repository.DeleteAsync(item.Id, version));
 
         // Assert
-        var entity = await movieContainer.ReadItemAsync<CosmosMovie>(item.Id, new PartitionKey(item.Rating));
+        var (id, partitionKey) = CosmosUtils.DefaultParseIdAndPartitionKey(item.Id);
+        var entity = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, partitionKey);
         Assert.NotNull(entity);
         Assert.NotNull(ex.Payload);
         Assert.NotSame(entity, ex.Payload);
@@ -257,13 +262,13 @@ public class CosmosTableRepository_Tests : IDisposable
     //public async Task ReadAsync_ReturnsDisconnectedEntity()
     //{
     //    // Arrange
-    //    var movie = Movies.GetRandomMovie<CosmosMovie>();
+    //    var movie = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
 
     //    // Act
     //    var actual = await repository.ReadAsync(movie.Id);
 
     //    // Assert
-    //    CosmosMovie expected = await movieContainer.ReadItemAsync<CosmosMovie>(movie.Id, new PartitionKey(movie.Id));
+    //    CosmosMovieWithPartitionKey expected = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(movie.Id, new PartitionKey(movie.Id));
     //    Assert.NotSame(expected, actual);
     //    Assert.Equal<IMovie>(expected, actual);
     //    Assert.Equal<ITableData>(expected, actual);
@@ -340,9 +345,8 @@ public class CosmosTableRepository_Tests : IDisposable
     {
         // Arrange
         var entity = blackPantherMovie.Clone();
-        var movie = Movies.GetRandomMovie<CosmosMovie>();
+        var movie = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
         entity.Id = movie.Id;
-        // entity.Id = movie.TranslateToDtoId(partitionKeyPropertyNames);
         entity.Rating = movie.Rating;
         var version = Guid.NewGuid().ToByteArray();
 
@@ -350,8 +354,8 @@ public class CosmosTableRepository_Tests : IDisposable
         var ex = await Assert.ThrowsAsync<PreconditionFailedException>(() => repository.ReplaceAsync(entity, version));
 
         // Assert
-        CosmosMovie expected = await movieContainer.ReadItemAsync<CosmosMovie>(movie.Id, new PartitionKey(movie.Rating));
-        expected.Id = expected.TranslateToDtoId(partitionKeyPropertyNames);
+        var (id, partitionKey) = CosmosUtils.DefaultParseIdAndPartitionKey(movie.Id);
+        CosmosMovieWithPartitionKey expected = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, partitionKey);
         Assert.NotSame(expected, ex.Payload);
         Assert.Equal(expected, ex.Payload as IMovie);
         Assert.Equal(expected, ex.Payload as ITableData);
@@ -361,10 +365,12 @@ public class CosmosTableRepository_Tests : IDisposable
     public async Task ReplaceAsync_Replaces_OnVersionMatch()
     {
         // Arrange
-        var movie = Movies.GetRandomMovie<CosmosMovie>();
-        CosmosMovie original = await movieContainer.ReadItemAsync<CosmosMovie>(movie.Id, new PartitionKey(movie.Rating));
+        var movie = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
+        var (id, partitionKey) = CosmosUtils.DefaultParseIdAndPartitionKey(movie.Id);
+        CosmosMovieWithPartitionKey original = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, partitionKey);
+
         var entity = blackPantherMovie.Clone();
-        entity.Id = movie.TranslateToDtoId(partitionKeyPropertyNames);
+        entity.Id = movie.Id;
         var version = original.Version.ToArray();
 
         // Act
@@ -372,7 +378,7 @@ public class CosmosTableRepository_Tests : IDisposable
 
         // Assert
         var (expectedId, expectedKey) = CosmosUtils.DefaultParseIdAndPartitionKey(entity.Id);
-        CosmosMovie expected = await movieContainer.ReadItemAsync<CosmosMovie>(expectedId, expectedKey);
+        CosmosMovieWithPartitionKey expected = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(expectedId, expectedKey);
         Assert.NotSame(expected, entity);
         Assert.Equal<IMovie>(expected, entity);
         AssertEx.SystemPropertiesChanged(original, entity);
@@ -383,11 +389,11 @@ public class CosmosTableRepository_Tests : IDisposable
     {
         // Arrange
         var entity = blackPantherMovie.Clone();
-        var movie = Movies.GetRandomMovie<CosmosMovie>();
+        var movie = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
         entity.Id = movie.Id;
-        // entity.Id = movie.TranslateToDtoId(partitionKeyPropertyNames);
         entity.Rating = movie.Rating;
-        CosmosMovie originalFromDatabase = await movieContainer.ReadItemAsync<CosmosMovie>(movie.Id, new PartitionKey(movie.Rating));
+        var (id, partitionKey) = CosmosUtils.DefaultParseIdAndPartitionKey(movie.Id);
+        CosmosMovieWithPartitionKey originalFromDatabase = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, partitionKey);
         var original = originalFromDatabase.Clone();
 
         // Act
@@ -395,7 +401,7 @@ public class CosmosTableRepository_Tests : IDisposable
 
         // Assert
         var (expectedId, expectedKey) = CosmosUtils.DefaultParseIdAndPartitionKey(entity.Id);
-        CosmosMovie expected = await movieContainer.ReadItemAsync<CosmosMovie>(expectedId, expectedKey);
+        CosmosMovieWithPartitionKey expected = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(expectedId, expectedKey);
         Assert.NotSame(expected, entity);
         Assert.Equal<IMovie>(expected, entity);
         AssertEx.SystemPropertiesChanged(original, entity);
@@ -408,7 +414,7 @@ public class CosmosTableRepository_Tests : IDisposable
     //    // Arrange
     //    var replacement = blackPantherMovie.Clone();
     //    replacement.Id = Movies.GetRandomId();
-    //    CosmosMovie original = await movieContainer.ReadItemAsync<CosmosMovie>(replacement.Id, new PartitionKey(replacement.Id));
+    //    CosmosMovieWithPartitionKey original = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(replacement.Id, new PartitionKey(replacement.Id));
     //    original.Version = null;
     //    var version = Guid.NewGuid().ToByteArray();
 
@@ -444,6 +450,6 @@ public class CosmosTableRepository_Tests : IDisposable
         byte[] v2 = v2IsNull ? null : new byte[] { 0x0A, 0x0B, 0x0C };
 
         // Act & Assert
-        Assert.Equal(expected, CosmosTableRepository<CosmosMovie>.PreconditionFailed(v1, v2));
+        Assert.Equal(expected, CosmosTableRepository<CosmosMovieWithPartitionKey>.PreconditionFailed(v1, v2));
     }
 }

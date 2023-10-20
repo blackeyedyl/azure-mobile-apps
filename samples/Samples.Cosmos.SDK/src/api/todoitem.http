@@ -1,0 +1,57 @@
+@hostname=localhost
+@port=7048
+
+### GET Request
+GET https://{{hostname}}:{{port}}/tables/todoitem/
+Accept: application/json
+ZUMO-API-VERSION: 3.0.0
+
+### GET Request
+GET https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+Accept: application/json
+ZUMO-API-VERSION: 3.0.0
+
+### POST Request
+POST https://{{hostname}}:{{port}}/tables/todoitem
+Content-Type: application/json
+ZUMO-API-VERSION: 3.0.0
+
+{
+  "id": "3:Samwise",
+  "UserId": "Samwise",
+  "Title": "Count calories",
+  "IsComplete": false
+}
+
+###
+
+### PUT Request
+PUT https://{{hostname}}:{{port}}/tables/todoitem/2:Samwise
+Content-Type: application/json
+ZUMO-API-VERSION: 3.0.0
+
+{
+  "id": "2:Samwise",
+  "UserId": "Samwise",
+  "Title": "Protect Frodo",
+  "Completed": true
+}
+
+###
+
+### PATCH Request
+PATCH https://{{hostname}}:{{port}}/tables/todoitem/2:Samwise
+Content-Type: application/json
+ZUMO-API-VERSION: 3.0.0
+
+{
+  "Title": "Try not to wear it"
+}
+
+###
+
+### DELETE Request
+DELETE https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+ZUMO-API-VERSION: 3.0.0
+
+###

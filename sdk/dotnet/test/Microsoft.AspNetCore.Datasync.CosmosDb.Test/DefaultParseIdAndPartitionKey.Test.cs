@@ -37,16 +37,6 @@ public class DefaultParseIdAndPartitionKey_Tests
     }
 
     [Fact]
-    public void ShouldThrowBadRequestWhenStartsWithAColon()
-    {
-        // Arrange
-        var input = ":customerId";
-
-        // Act & Assert
-        Assert.Throws<BadRequestException>(() => CosmosUtils.DefaultParseIdAndPartitionKey(input));
-    }
-
-    [Fact]
     public void ShouldThrowBadRequestWhenEndingInColon()
     {
         // Arrange
@@ -81,6 +71,20 @@ public class DefaultParseIdAndPartitionKey_Tests
 
         // Assert
         Assert.Equal("id", id);
+        Assert.Equal(new PartitionKey("customerId"), partitionKey);
+    }
+
+    [Fact]
+    public void ShouldReturnNullIdWhenStartsWithAColon()
+    {
+        // Arrange
+        var input = ":customerId";
+
+        // Act
+        var (id, partitionKey) = CosmosUtils.DefaultParseIdAndPartitionKey(input);
+
+        // Assert
+        Assert.Null(id);
         Assert.Equal(new PartitionKey("customerId"), partitionKey);
     }
 

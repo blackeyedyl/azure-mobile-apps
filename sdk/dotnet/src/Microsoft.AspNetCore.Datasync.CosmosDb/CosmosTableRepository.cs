@@ -23,6 +23,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// </summary>
         private readonly Container container;
         private readonly List<string> partitionKeyPropertyNames;
+        private readonly ItemRequestOptions itemRequestOptions;
 
         /// <summary>
         /// Create a new <see cref="CosmosTableRepository{TEntity}"/> for accessing the database.
@@ -33,7 +34,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <param name="containerName">The name of the container.</param>
         public CosmosTableRepository(
             Container container,
+            // TODO make a CosmosTableRepositoryOptions class that has these properties
             List<string> partitionKeyPropertyNames = null,
+            ItemRequestOptions itemRequestOptions = null,
             Func<string, (string id, PartitionKey partitionKey)> parseIdAndPartitionKey = null)
         {
             // Type check - only known derivates are allowed.
@@ -55,6 +58,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             this.container = container;
             this.partitionKeyPropertyNames = partitionKeyPropertyNames ?? new() { "id" };
+            this.itemRequestOptions = itemRequestOptions ?? new();
             ParseIdAndPartitionKey = parseIdAndPartitionKey ?? CosmosUtils.DefaultParseIdAndPartitionKey;
         }
 
@@ -93,23 +97,19 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                entity.Id ??= Guid.NewGuid().ToString("N");
-                var originalId = entity.Id;
-                try
+                if (entity.Id == null || ParseIdAndPartitionKey(entity.Id).id == null)
                 {
-                    entity.Id = ParseIdAndPartitionKey(entity.Id).id;
+                    entity.Id = Guid.NewGuid().ToString("N");
                 }
-                catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
-                TEntity newEntity = await container.CreateItemAsync(entity, cancellationToken: token);
+                TEntity newEntity = await container.CreateItemAsync(entity, requestOptions: itemRequestOptions, cancellationToken: token);
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
-                entity.Id = originalId;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.Conflict)
             {
-                var partitionKey = entity.BuildPartitionKey(partitionKeyPropertyNames);
-                TEntity storeEntity = await container.ReadItemAsync<TEntity>(entity.Id, partitionKey, cancellationToken: token);
+                var (id, partitionKey) = ParseIdAndPartitionKey(entity.Id);
+                TEntity storeEntity = await container.ReadItemAsync<TEntity>(id, partitionKey, cancellationToken: token);
                 throw new ConflictException(storeEntity);
             }
             catch (CosmosException cosmosException)
@@ -142,6 +142,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
+                // TODO table controller just called this, can we make this more efficient?
                 TEntity storeEntity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cancellationToken: token);
                 if (PreconditionFailed(version, storeEntity.Version))
                 {
@@ -230,14 +231,15 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                     throw new PreconditionFailedException(storeEntity);
                 }
                 var originalId = entity.Id;
+                var lookupId = entity.Id;
                 try
                 {
-                    entity.Id = ParseIdAndPartitionKey(entity.Id).id;
+                    lookupId = ParseIdAndPartitionKey(entity.Id).id;
                 }
                 catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
                 // TODO can compare etag versions as part of options
-                TEntity newEntity = await container.ReplaceItemAsync(entity, entity.Id, cancellationToken: token);
+                TEntity newEntity = await container.ReplaceItemAsync(entity, lookupId, requestOptions: itemRequestOptions, cancellationToken: token);
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
                 entity.Id = originalId;

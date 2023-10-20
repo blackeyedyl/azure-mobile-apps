@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All Rights Reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Azure.Cosmos;
 using System.Text;
 
 namespace Microsoft.AspNetCore.Datasync.CosmosDb.Test;
@@ -75,7 +76,7 @@ public class CosmosTableData_Tests
     public void Equals_CompoundId(string id, string partitionKey)
     {
         // Arrange
-        var entity = new { Id = id, PartitionKey = partitionKey };
+        var entity = new CosmosTestEntity { Id = id, PartitionKey = partitionKey };
 
         // Act & Assert
         Assert.Equal($"{id}:{partitionKey}", entity.Id);
@@ -136,5 +137,7 @@ public class CosmosTableData_Tests
     private class CosmosTestEntity : CosmosTableData
     {
         public string PartitionKey { get; set; }
+
+        protected override string TranslateToId() => $"{ServerId}:{PartitionKey}";
     }
 }

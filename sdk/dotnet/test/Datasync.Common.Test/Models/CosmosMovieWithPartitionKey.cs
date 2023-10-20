@@ -8,7 +8,7 @@ using System.Text.Json;
 namespace Datasync.Common.Test.Models;
 
 [ExcludeFromCodeCoverage]
-public class CosmosMovie : CosmosTableData, IMovie, IEquatable<IMovie>
+public class CosmosMovieWithPartitionKey : CosmosTableData, IMovie, IEquatable<IMovie>
 {
     /// <summary>
     /// True if the movie won the Oscar for Best Picture
@@ -24,7 +24,7 @@ public class CosmosMovie : CosmosTableData, IMovie, IEquatable<IMovie>
     /// <summary>
     /// The MPAA rating for the movie, if available.
     /// </summary>
-    public string Rating { get; set; }
+    public string Rating { get; set; } = "NR";
 
     /// <summary>
     /// The release date of the movie.
@@ -59,7 +59,7 @@ public class CosmosMovie : CosmosTableData, IMovie, IEquatable<IMovie>
     /// Clones this movie into another new movie.
     /// </summary>
     /// <returns>The new movie</returns>
-    public CosmosMovie Clone() => new()
+    public CosmosMovieWithPartitionKey Clone() => new()
     {
         Id = this.Id,
         Deleted = this.Deleted,
@@ -82,4 +82,5 @@ public class CosmosMovie : CosmosTableData, IMovie, IEquatable<IMovie>
         string json = JsonSerializer.Serialize(this);
         return JsonSerializer.Deserialize<Dictionary<string, object>>(json)!;
     }
+    protected override string TranslateToId() => $"{ServerId}:{Rating}";
 }

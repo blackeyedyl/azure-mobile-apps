@@ -27,19 +27,19 @@ internal static class CosmosUtils
         {
             throw new BadRequestException();
         }
-        // TODO need to handle bool and double keys
         if (!idPartitionKeyString.Contains(":"))
         {
+            // TODO need to handle bool and double keys
             return (idPartitionKeyString, new PartitionKey(idPartitionKeyString));
         }
-
-        var id = idPartitionKeyString.Split(':')[0];
+        var parts = idPartitionKeyString.Split(':');
+        var id = parts[0];
         if (string.IsNullOrEmpty(id))
         {
-            throw new BadRequestException();
+            id = null;
         }
 
-        var keysPart = idPartitionKeyString.Substring(id.Length + 1);
+        var keysPart = parts[1];
         if (string.IsNullOrEmpty(keysPart))
         {
             throw new BadRequestException();
@@ -48,10 +48,12 @@ internal static class CosmosUtils
         var keys = keysPart.Split('|');
         if (keys.Length == 1)
         {
+            // TODO need to handle bool and double keys
             return (id, new PartitionKey(keys[0]));
         }
         else
         {
+            // TODO need to handle bool and double keys
             var partitionKey = new PartitionKeyBuilder();
             foreach (var key in keys)
             {

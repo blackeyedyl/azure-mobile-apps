@@ -19,9 +19,29 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The globally unique ID for this entity.
         /// </summary>
-        //public string Id { get; set; }
         [JsonProperty("id")]
-        public string Id { get; set; }
+        public string Id 
+        {
+            get => TranslateToId();
+            set => TranslateFromId(value);
+        }
+
+        protected virtual void TranslateFromId(string cosmosId)
+        {
+            if (cosmosId?.Contains(':') == true)
+            {
+                ServerId = cosmosId.Split(':')[0];
+            }
+            else
+            {
+                ServerId = cosmosId;
+            }
+        }
+
+        protected virtual string TranslateToId() => ServerId;
+
+        [JsonIgnore]
+        protected string ServerId { get; private set; }
 
         /// <summary>
         /// The date/time that the entity was updated.
