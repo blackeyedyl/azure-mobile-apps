@@ -15,10 +15,10 @@ internal static class CosmosDbHelper
         var connectionString = "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
         var client = new CosmosClient(connectionString);
         Database database = await client.CreateDatabaseAsync(databaseName);
-        Container container = await database.CreateContainerAsync("movies", "/id");
+        Container container = await database.CreateContainerAsync("movies", "/Rating");
 
         // Populate with test data
-        var seedData = TestData.Movies.OfType<CosmosMovie>();
+        var seedData = Movies.OfType<CosmosMovie>();
         foreach (var movie in seedData)
         {
             var offset = -(180 + new Random().Next(180));

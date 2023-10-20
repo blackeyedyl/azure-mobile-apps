@@ -18,34 +18,27 @@ public class CosmosMovie : CosmosTableData, IMovie, IEquatable<IMovie>
     /// <summary>
     /// The running time of the movie
     /// </summary>
-    [Required]
     [Range(60, 360)]
     public int Duration { get; set; }
 
     /// <summary>
     /// The MPAA rating for the movie, if available.
     /// </summary>
-    [RegularExpression("^(G|PG|PG-13|R|NC-17)$")]
-    public string Rating { get; set; }
+    public string Rating { get; set; } = "NR";
 
     /// <summary>
     /// The release date of the movie.
     /// </summary>
-    [Required]
     public DateTimeOffset ReleaseDate { get; set; }
 
     /// <summary>
     /// The title of the movie.
     /// </summary>
-    [Required]
-    [StringLength(60, MinimumLength = 2)]
     public string Title { get; set; } = "";
 
     /// <summary>
     /// The year that the movie was released.
     /// </summary>
-    [Required]
-    [Range(1920, 2030)]
     public int Year { get; set; }
 
     /// <summary>

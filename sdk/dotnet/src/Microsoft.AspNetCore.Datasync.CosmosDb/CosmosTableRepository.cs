@@ -221,6 +221,10 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             {
                 // TODO the TableController just called this, can we make this more efficient?
                 TEntity storeEntity = await ReadAsync(entity.Id, token);
+                if (storeEntity == null)
+                {
+                    throw new NotFoundException();
+                }
                 if (PreconditionFailed(version, storeEntity.Version))
                 {
                     throw new PreconditionFailedException(storeEntity);
