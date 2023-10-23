@@ -18,6 +18,18 @@ public class CosmosTableRepository_Tests : IDisposable
         Year = 2018
     };
 
+    internal class NotEntityModel : ITableData
+    {
+        public string Id { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public byte[] Version { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public DateTimeOffset UpdatedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public bool Deleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public bool Equals(ITableData other)
+        {
+            throw new NotImplementedException();
+        }
+    }
     private Container movieContainer;
     private CosmosTableRepository<CosmosMovieWithPartitionKey> repository;
     private List<string> partitionKeyPropertyNames = new() { "Rating" };
@@ -54,25 +66,11 @@ public class CosmosTableRepository_Tests : IDisposable
         Assert.Throws<ArgumentNullException>(() => new CosmosTableRepository<CosmosMovieWithPartitionKey>(null));
     }
 
-    // TODO are these applicable to Cosmos?
-    //[Fact]
-    //public void CosmosTableRepository_Throws_WithMissingSet()
-    //{
-    //    Assert.Throws<ArgumentException>(() => new EntityTableRepository<EFError>(context));
-    //}
-
-    //[Fact]
-    //public void CosmosTableRepository_Allows_ETagEntityTableData_GenericParam()
-    //{
-    //    var sut = new EntityTableRepository<ETagModel>(context);
-    //    Assert.NotNull(sut);
-    //}
-
-    //[Fact]
-    //public void CosmosTableRepository_Throws_OnNonSupported_GenericParam()
-    //{
-    //    Assert.Throws<InvalidCastException>(() => new EntityTableRepository<NotEntityModel>(context));
-    //}
+    [Fact]
+    public void CosmosTableRepository_Throws_OnNonSupported_GenericParam()
+    {
+        Assert.Throws<InvalidCastException>(() => new CosmosTableRepository<NotEntityModel>(movieContainer));
+    }
 
     [Fact]
     public void AsQueryable_Returns_IQueryable()
@@ -177,23 +175,6 @@ public class CosmosTableRepository_Tests : IDisposable
         Assert.False(item.Version.SequenceEqual(version));
     }
 
-    // TODO is this applicable to Cosmos?
-    //[Fact]
-    //public async Task CreateAsync_Throws_OnDbError()
-    //{
-    //    // Arrange
-    //    await Initialize();
-    //    var item = blackPantherMovie.Clone();
-    //    var version = Guid.NewGuid().ToByteArray();
-    //    item.Version = version.ToArray();
-    //    context.Connection.Close(); // Force an error
-
-    //    // Act & Assert
-    //    var ex = await Assert.ThrowsAsync<RepositoryException>(() => repository.CreateAsync(item));
-
-    //    Assert.NotNull(ex.InnerException);
-    //}
-
     [Fact]
     public async Task DeleteAsync_Deletes_WhenNoVersion()
     {
@@ -207,25 +188,6 @@ public class CosmosTableRepository_Tests : IDisposable
         var ex = await Assert.ThrowsAsync<CosmosException>(() => movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(item.Id, new(item.Id)));
         Assert.Equal(System.Net.HttpStatusCode.NotFound, ex.StatusCode);
     }
-
-    // TODO is this applicable to Cosmos?
-    //[Fact]
-    //public async Task DeleteAsync_Throws_WhenEntityVersionNull()
-    //{
-    //    // Arrange
-    //    var id = Movies.GetRandomId();
-    //    CosmosMovieWithPartitionKey entity = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, new PartitionKey(id));
-    //    var version = Guid.NewGuid().ToByteArray();
-    //    entity.Version = null;
-
-    //    // Act & Assert
-    //    var ex = await Assert.ThrowsAsync<PreconditionFailedException>(() => repository.DeleteAsync(id, version));
-
-    //    entity = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(id, new PartitionKey(id));
-    //    Assert.NotNull(entity);
-    //    Assert.NotNull(ex.Payload);
-    //    Assert.NotSame(entity, ex.Payload);
-    //}
 
     [Fact]
     public async Task DeleteAsync_Throws_WhenEntityVersionsDiffer()
@@ -244,35 +206,6 @@ public class CosmosTableRepository_Tests : IDisposable
         Assert.NotNull(ex.Payload);
         Assert.NotSame(entity, ex.Payload);
     }
-
-    //[Fact]
-    //public async Task DeleteAsync_Throws_WhenUpdateError()
-    //{
-    //    // Arrange
-    //    var id = Movies.GetRandomId();
-    //    await movieContainer.DeleteContainerAsync(); // Force a database error
-
-    //    // Act & Assert
-    //    var ex = await Assert.ThrowsAsync<RepositoryException>(() => repository.DeleteAsync(id));
-
-    //    Assert.NotNull(ex.InnerException);
-    //}
-
-    //[Fact]
-    //public async Task ReadAsync_ReturnsDisconnectedEntity()
-    //{
-    //    // Arrange
-    //    var movie = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
-
-    //    // Act
-    //    var actual = await repository.ReadAsync(movie.Id);
-
-    //    // Assert
-    //    CosmosMovieWithPartitionKey expected = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(movie.Id, new PartitionKey(movie.Id));
-    //    Assert.NotSame(expected, actual);
-    //    Assert.Equal<IMovie>(expected, actual);
-    //    Assert.Equal<ITableData>(expected, actual);
-    //}
 
     [Fact]
     public async Task ReadAsync_Throws_OnNullId()
@@ -407,36 +340,4 @@ public class CosmosTableRepository_Tests : IDisposable
         Assert.Equal<IMovie>(expected, entity);
         AssertEx.SystemPropertiesChanged(original, entity);
     }
-
-    // TODO is this applicable to Cosmos?
-    //[Fact]
-    //public async Task ReplaceAsync_Throws_WhenEntityVersionNull()
-    //{
-    //    // Arrange
-    //    var replacement = blackPantherMovie.Clone();
-    //    replacement.Id = Movies.GetRandomId();
-    //    CosmosMovieWithPartitionKey original = await movieContainer.ReadItemAsync<CosmosMovieWithPartitionKey>(replacement.Id, new PartitionKey(replacement.Id));
-    //    original.Version = null;
-    //    var version = Guid.NewGuid().ToByteArray();
-
-    //    // Act & Assert
-    //    var ex = await Assert.ThrowsAsync<PreconditionFailedException>(() => repository.ReplaceAsync(replacement, version));
-
-    //    Assert.NotSame(original, ex.Payload);
-    //    Assert.Equal(original, ex.Payload as IMovie);
-    //}
-
-    //[Fact]
-    //public async Task ReplaceAsync_Throws_OnDbError()
-    //{
-    //    // Arrange
-    //    var entity = blackPantherMovie.Clone();
-    //    entity.Id = Movies.GetRandomId();
-    //    await movieContainer.DeleteContainerAsync(); // Force a database error
-
-    //    // Act & Assert
-    //    var ex = await Assert.ThrowsAsync<RepositoryException>(() => repository.ReplaceAsync(entity));
-
-    //    Assert.NotNull(ex.InnerException);
-    //}
 }
