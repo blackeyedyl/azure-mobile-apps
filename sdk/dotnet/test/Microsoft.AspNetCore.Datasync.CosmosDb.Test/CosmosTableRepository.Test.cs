@@ -439,18 +439,4 @@ public class CosmosTableRepository_Tests : IDisposable
 
     //    Assert.NotNull(ex.InnerException);
     //}
-
-    [Theory]
-    [InlineData(true, true, false)]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, true)]
-    public void PreconditionFailed_Works(bool v1IsNull, bool v2IsNull, bool expected)
-    {
-        // Arrange
-        byte[] v1 = v1IsNull ? null : new byte[] { 0x0A, 0x0B, 0x0C };
-        byte[] v2 = v2IsNull ? null : new byte[] { 0x0A, 0x0B, 0x0C };
-
-        // Act & Assert
-        Assert.Equal(expected, CosmosTableRepository<CosmosMovieWithPartitionKey>.PreconditionFailed(v1, v2));
-    }
 }

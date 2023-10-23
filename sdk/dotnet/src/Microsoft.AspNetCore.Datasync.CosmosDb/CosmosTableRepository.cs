@@ -26,6 +26,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// Container where the <see cref="TEntity"/> is stored.
         /// </summary>
         private readonly Container container;
+
         private readonly CosmosRepositoryOptions cosmosRepositoryOptions;
 
         /// <summary>
@@ -103,9 +104,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 }
                 catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
-                
+
                 var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
-                
+
                 var newObject = await container.CreateItemAsync<dynamic>(jObjectEntity, requestOptions: cosmosRepositoryOptions.ItemRequestOptions, cancellationToken: token);
                 var newEntity = newObject.Resource.ToObject<TEntity>();
                 entity.UpdatedAt = newEntity.UpdatedAt;
@@ -146,18 +147,17 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                // TODO table controller just called this, can we make this more efficient?
-                TEntity storeEntity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
-                if (PreconditionFailed(version, storeEntity.Version))
-                {
-                    throw new PreconditionFailedException(storeEntity);
-                }
-                // TODO can compare etag versions as part of options
-                await container.DeleteItemAsync<TEntity>(parsedId, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
+                var oneTimeRequestOptions = CreateOptionsForThisRequest(version);
+                await container.DeleteItemAsync<TEntity>(parsedId, partitionKey, oneTimeRequestOptions, token);
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.NotFound)
             {
                 throw new NotFoundException();
+            }
+            catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
+            {
+                var storeEntity = await ReadAsync(id, token);
+                throw new PreconditionFailedException(storeEntity);
             }
             catch (CosmosException cosmosException)
             {
@@ -218,44 +218,33 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         public async Task ReplaceAsync(TEntity entity, byte[] version = null, CancellationToken token = default)
         {
             ArgumentNullException.ThrowIfNull(entity, nameof(entity));
-            if (string.IsNullOrEmpty(entity.Id))
+            var (parsedId, partitionKey) = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id);
+            if (string.IsNullOrEmpty(parsedId))
             {
                 throw new BadRequestException();
             }
 
             try
             {
-                // TODO the TableController just called this, can we make this more efficient?
-                TEntity storeEntity = await ReadAsync(entity.Id, token);
-                if (storeEntity == null)
-                {
-                    throw new NotFoundException();
-                }
-                if (PreconditionFailed(version, storeEntity.Version))
-                {
-                    throw new PreconditionFailedException(storeEntity);
-                }
-                var originalId = entity.Id;
-                var lookupId = entity.Id;
-                try
-                {
-                    lookupId = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id).id;
-                }
-                catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
-                
-                var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
 
-                // TODO can compare etag versions as part of options
-                var newObject = await container.ReplaceItemAsync<dynamic>(jObjectEntity, lookupId, requestOptions: cosmosRepositoryOptions.ItemRequestOptions, cancellationToken: token);
+                var jObjectEntity = await ConvertEntityToJson(entity, parsedId);
+
+                var oneTimeRequestOptions = CreateOptionsForThisRequest(version);
+                var newObject = await container.ReplaceItemAsync<dynamic>(jObjectEntity, parsedId, requestOptions: oneTimeRequestOptions, cancellationToken: token);
                 var newEntity = newObject.Resource.ToObject<TEntity>();
+
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
-                entity.Id = originalId;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.NotFound)
             {
                 throw new NotFoundException();
+            }
+            catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
+            {
+                var storeEntity = await ReadAsync(entity.Id, token);
+                throw new PreconditionFailedException(storeEntity);
             }
             catch (CosmosException cosmosException)
             {
@@ -264,16 +253,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         }
 
         /// <summary>
-        /// Checks that the version provided matches the version in the database.
-        /// </summary>
-        /// <param name="expectedVersion">The requested version.</param>
-        /// <param name="currentVersion">The current store version.</param>
-        /// <returns>True if we need to throw a <see cref="PreconditionFailedException"/>.</returns>
-        internal static bool PreconditionFailed(byte[] expectedVersion, byte[] currentVersion)
-           => expectedVersion != null && currentVersion?.SequenceEqual(expectedVersion) != true;
-
-        /// <summary>
-        /// Converts the <paramref name="entity"/> to a json object and sets the id 
+        /// Converts the <paramref name="entity"/> to a json object and sets the id
         /// to the <paramref name="lookupId"/> using the Comsos DB serializer.
         /// </summary>
         /// <param name="entity">Entity to convert.</param>
@@ -289,6 +269,22 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             var jObjectEntity = JObject.Parse(jsonString);
             jObjectEntity["id"] = lookupId;
             return jObjectEntity;
+        }
+
+        /// <summary>
+        /// Copies the <see cref="ItemRequestOptions"/> from <see cref="cosmosRepositoryOptions"/> and sets the IfMatchEtag 
+        /// to the provided version if not null. This is used to verify the precondition for the request.
+        /// </summary>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        private ItemRequestOptions CreateOptionsForThisRequest(byte[] version)
+        {
+            var oneTimeOptions = cosmosRepositoryOptions.ItemRequestOptions.ShallowCopy() as ItemRequestOptions;
+            if (version != null)
+            {
+                oneTimeOptions.IfMatchEtag = Encoding.UTF8.GetString(version);
+            }
+            return oneTimeOptions;
         }
     }
 }
