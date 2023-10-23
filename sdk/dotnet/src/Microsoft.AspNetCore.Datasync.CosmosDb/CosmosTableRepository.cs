@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -92,23 +93,15 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                if (entity.Id == null || cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id).id == null)
+                var (parsedId, partitionKey) = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id);
+                if (parsedId == null)
                 {
-                    entity.Id = Guid.NewGuid().ToString("N");
+                    entity.Id = parsedId = Guid.NewGuid().ToString("N");
                 }
-                // TODO should we support null partition key by building on e?
-                var lookupId = entity.Id;
-                try
-                {
-                    lookupId = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id).id;
-                }
-                catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
-
-                var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
-
-                var newObject = await container.CreateItemAsync<dynamic>(jObjectEntity, requestOptions: cosmosRepositoryOptions.ItemRequestOptions, cancellationToken: token);
-                var newEntity = newObject.Resource.ToObject<TEntity>();
+                var dynamicJsonEntity = await ConvertEntityToJson(entity, parsedId);
+                var newEntityResponse = await container.CreateItemAsync<dynamic>(dynamicJsonEntity, requestOptions: cosmosRepositoryOptions.ItemRequestOptions, cancellationToken: token);
+                var newEntity = newEntityResponse.Resource.ToObject<TEntity>();
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
             }
