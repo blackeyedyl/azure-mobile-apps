@@ -11,6 +11,21 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 {
     public static class CosmosTableDataExtensions
     {
+        internal static List<Type> doubleTypes = new()
+        {
+            typeof(byte),
+            typeof(decimal),
+            typeof(double),
+            typeof(float),
+            typeof(int),
+            typeof(long),
+            typeof(sbyte),
+            typeof(short),
+            typeof(uint),
+            typeof(ulong),
+            typeof(ushort)
+        };
+
         /// <summary>
         /// Based on the <see cref="CosmosTableData"/> <paramref name="entity"/> try and 
         /// build a partition key based on the <paramref name="partitionKeyPropertyNames"/>.
@@ -42,30 +57,19 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 {
                     throw new ArgumentNullException($"Value of property '{propertyName}' cannot be null.");
                 }
-
-                switch (value)
+                
+                if (doubleTypes.Contains(value.GetType()))
                 {
-                    case double doubleValue:
-                        partitionKeyBuilder.Add(doubleValue);
-                        break;
-                    case float floatValue:
-                        partitionKeyBuilder.Add(floatValue);
-                        break;
-                    case decimal decimalValue:
-                        partitionKeyBuilder.Add((double)decimalValue);
-                        break;
-                    case int intValue:
-                        partitionKeyBuilder.Add(intValue);
-                        break;
-                    case uint uintValue:
-                        partitionKeyBuilder.Add(uintValue);
-                        break;
-                    case bool boolValue:
-                        partitionKeyBuilder.Add(boolValue);
-                        break;
-                    default:
-                        partitionKeyBuilder.Add(value.ToString());
-                        break;
+                    var doubleValue = Convert.ToDouble(value);
+                    partitionKeyBuilder.Add(doubleValue);
+                }
+                else if (value is bool boolValue)
+                {
+                    partitionKeyBuilder.Add(boolValue);
+                }
+                else
+                {
+                    partitionKeyBuilder.Add(value.ToString());
                 }
             }
 
