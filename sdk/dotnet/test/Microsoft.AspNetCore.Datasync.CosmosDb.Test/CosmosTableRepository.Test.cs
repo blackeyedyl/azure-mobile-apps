@@ -25,7 +25,11 @@ public class CosmosTableRepository_Tests : IDisposable
     public CosmosTableRepository_Tests()
     {
         movieContainer = CosmosDbHelper.GetContainer().Result;
-        repository = new(movieContainer, partitionKeyPropertyNames);
+        CosmosRepositoryOptions cosmosRepositoryOptions = new()
+        {
+            PartitionKeyPropertyNames = partitionKeyPropertyNames
+        };
+        repository = new(movieContainer, cosmosRepositoryOptions);
     }
 
     [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "Test Case - no inherited classes")]

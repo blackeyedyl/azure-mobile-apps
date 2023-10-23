@@ -26,9 +26,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// Container where the <see cref="TEntity"/> is stored.
         /// </summary>
         private readonly Container container;
-
-        private readonly ItemRequestOptions itemRequestOptions;
-        private readonly List<string> partitionKeyPropertyNames;
+        private readonly CosmosRepositoryOptions cosmosRepositoryOptions;
 
         /// <summary>
         /// Create a new <see cref="CosmosTableRepository{TEntity}"/> for accessing the database.
@@ -37,12 +35,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <param name="cosmosClient">The <see cref="cosmosClient"/> for the backend store.</param>
         /// <param name="databaseName">The name of the database.</param>
         /// <param name="containerName">The name of the container.</param>
-        public CosmosTableRepository(
-            Container container,
-            // TODO make a CosmosTableRepositoryOptions class that has these properties
-            List<string> partitionKeyPropertyNames = null,
-            ItemRequestOptions itemRequestOptions = null,
-            Func<string, (string id, PartitionKey partitionKey)> parseIdAndPartitionKey = null)
+        public CosmosTableRepository(Container container, CosmosRepositoryOptions cosmosRepositoryOptions = null)
         {
             // Type check - only known derivates are allowed.
             var typeInfo = typeof(TEntity);
@@ -62,15 +55,11 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             }
 
             this.container = container;
-            this.partitionKeyPropertyNames = partitionKeyPropertyNames ?? new() { "id" };
-            this.itemRequestOptions = itemRequestOptions ?? new();
-            ParseIdAndPartitionKey = parseIdAndPartitionKey ?? CosmosUtils.DefaultParseIdAndPartitionKey;
+            this.cosmosRepositoryOptions = cosmosRepositoryOptions ?? new();
+            cosmosRepositoryOptions.PartitionKeyPropertyNames ??= new() { "id" };
+            cosmosRepositoryOptions.ItemRequestOptions ??= new();
+            cosmosRepositoryOptions.ParseIdAndPartitionKey ??= CosmosUtils.DefaultParseIdAndPartitionKey;
         }
-
-        /// <summary>
-        /// Gets the delegate to parse the id and partition key.
-        /// </summary>
-        internal Func<string, (string id, PartitionKey partitionKey)> ParseIdAndPartitionKey { get; }
 
         /// <summary>
         /// Returns an unexecuted <see cref="IQueryable{T}"/> that represents the data store as a whole.
@@ -102,7 +91,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                if (entity.Id == null || ParseIdAndPartitionKey(entity.Id).id == null)
+                if (entity.Id == null || cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id).id == null)
                 {
                     entity.Id = Guid.NewGuid().ToString("N");
                 }
@@ -110,14 +99,14 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 var lookupId = entity.Id;
                 try
                 {
-                    lookupId = ParseIdAndPartitionKey(entity.Id).id;
+                    lookupId = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id).id;
                 }
                 catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
                 
                 var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
                 
-                var newObject = await container.CreateItemAsync<dynamic>(jObjectEntity, requestOptions: itemRequestOptions, cancellationToken: token);
+                var newObject = await container.CreateItemAsync<dynamic>(jObjectEntity, requestOptions: cosmosRepositoryOptions.ItemRequestOptions, cancellationToken: token);
                 var newEntity = newObject.Resource.ToObject<TEntity>();
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
@@ -125,8 +114,8 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.Conflict)
             {
                 //TODO if the entity.Id isn't constructed this will fail
-                var (id, partitionKey) = ParseIdAndPartitionKey(entity.Id);
-                TEntity storeEntity = await container.ReadItemAsync<TEntity>(id, partitionKey, cancellationToken: token);
+                var (id, partitionKey) = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id);
+                TEntity storeEntity = await container.ReadItemAsync<TEntity>(id, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
                 throw new ConflictException(storeEntity);
             }
             catch (CosmosException cosmosException)
@@ -151,7 +140,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             {
                 throw new BadRequestException();
             }
-            var (parsedId, partitionKey) = ParseIdAndPartitionKey(id);
+            var (parsedId, partitionKey) = cosmosRepositoryOptions.ParseIdAndPartitionKey(id);
             if (string.IsNullOrEmpty(parsedId))
             {
                 throw new BadRequestException();
@@ -160,12 +149,13 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             try
             {
                 // TODO table controller just called this, can we make this more efficient?
-                TEntity storeEntity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cancellationToken: token);
+                TEntity storeEntity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
                 if (PreconditionFailed(version, storeEntity.Version))
                 {
                     throw new PreconditionFailedException(storeEntity);
                 }
-                await container.DeleteItemAsync<TEntity>(parsedId, partitionKey, cancellationToken: token);
+                // TODO can compare etag versions as part of options
+                await container.DeleteItemAsync<TEntity>(parsedId, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.NotFound)
             {
@@ -193,7 +183,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 throw new BadRequestException();
             }
 
-            var (parsedId, partitionKey) = ParseIdAndPartitionKey(id);
+            var (parsedId, partitionKey) = cosmosRepositoryOptions.ParseIdAndPartitionKey(id);
             if (string.IsNullOrEmpty(parsedId))
             {
                 throw new BadRequestException();
@@ -201,7 +191,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             try
             {
-                TEntity entity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cancellationToken: token);
+                TEntity entity = await container.ReadItemAsync<TEntity>(parsedId, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
                 entity.Id = id;
                 return entity;
             }
@@ -251,7 +241,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 var lookupId = entity.Id;
                 try
                 {
-                    lookupId = ParseIdAndPartitionKey(entity.Id).id;
+                    lookupId = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id).id;
                 }
                 catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
@@ -259,7 +249,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
 
                 // TODO can compare etag versions as part of options
-                var newObject = await container.ReplaceItemAsync<dynamic>(jObjectEntity, lookupId, requestOptions: itemRequestOptions, cancellationToken: token);
+                var newObject = await container.ReplaceItemAsync<dynamic>(jObjectEntity, lookupId, requestOptions: cosmosRepositoryOptions.ItemRequestOptions, cancellationToken: token);
                 var newEntity = newObject.Resource.ToObject<TEntity>();
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;

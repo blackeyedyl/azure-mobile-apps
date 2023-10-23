@@ -254,7 +254,6 @@ public class EntityTableRepository_Tests
         var id = Movies.GetRandomId();
         var entity = context.GetMovieById(id);
         var version = Guid.NewGuid().ToByteArray();
-        //TODO doesn't work with etag table data
         entity.Version = null;
 
         var ex = await Assert.ThrowsAsync<PreconditionFailedException>(() => repository.DeleteAsync(id, version));
