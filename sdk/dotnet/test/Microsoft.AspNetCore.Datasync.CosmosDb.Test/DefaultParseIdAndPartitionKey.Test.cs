@@ -6,6 +6,8 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb.Test;
 [ExcludeFromCodeCoverage]
 public class DefaultParseIdAndPartitionKey_Tests
 {
+    // TODO multi-partition key tests with doubles and bools for keys
+
     [Fact]
     public void ShouldThrowBadRequestWhenInputIsEmpty()
     {

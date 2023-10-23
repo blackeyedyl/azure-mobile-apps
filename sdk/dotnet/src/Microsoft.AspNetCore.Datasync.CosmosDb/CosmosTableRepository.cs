@@ -58,9 +58,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
 
             this.container = container;
             this.cosmosRepositoryOptions = cosmosRepositoryOptions ?? new();
-            cosmosRepositoryOptions.PartitionKeyPropertyNames ??= new() { "id" };
-            cosmosRepositoryOptions.ItemRequestOptions ??= new();
-            cosmosRepositoryOptions.ParseIdAndPartitionKey ??= CosmosUtils.DefaultParseIdAndPartitionKey;
+            this.cosmosRepositoryOptions.PartitionKeyPropertyNames ??= new() { "id" };
+            this.cosmosRepositoryOptions.ItemRequestOptions ??= new();
+            this.cosmosRepositoryOptions.ParseIdAndPartitionKey ??= CosmosUtils.DefaultParseIdAndPartitionKey;
         }
 
         /// <summary>
@@ -254,6 +254,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <returns></returns>
         private async Task<JObject> ConvertEntityToJson(TEntity entity, string lookupId)
         {
+            // TODO need tests
             ArgumentNullException.ThrowIfNull(entity, nameof(entity));
             ArgumentNullException.ThrowIfNull(lookupId, nameof(lookupId));
             using var stream = container.Database.Client.ClientOptions.Serializer.ToStream(entity);
@@ -272,6 +273,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <returns></returns>
         private ItemRequestOptions CreateOptionsForThisRequest(byte[] version)
         {
+            // TODO need tests
             var oneTimeOptions = cosmosRepositoryOptions.ItemRequestOptions.ShallowCopy() as ItemRequestOptions;
             if (version != null)
             {

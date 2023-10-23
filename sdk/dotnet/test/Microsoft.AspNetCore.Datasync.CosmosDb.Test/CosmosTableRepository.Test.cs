@@ -50,8 +50,6 @@ public class CosmosTableRepository_Tests : IDisposable
         movieContainer.Database.DeleteAsync().Wait();
     }
 
-    // TODO multi-partition key tests with doubles and bools for keys
-
     [Fact]
     public void CosmosTableRepository_CanCreate_WithContainer()
     {
