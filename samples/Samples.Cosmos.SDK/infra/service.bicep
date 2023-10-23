@@ -84,26 +84,6 @@ resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
   }
 }
 
-resource cleanIdTrigger 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/triggers@2021-04-15' = {
-  name: '${cosmosContainer.name}/CleanId'
-  properties: {
-    operation: 'All'  // or 'Create', 'Replace', 'Delete' based on your needs
-    type: 'PreTrigger'
-    body: 'function stripPartitionKeyFromId() {
-      var context = getContext();
-      var request = context.getRequest();
-      var itemToCreate = request.getBody();
-      if (itemToCreate.id) {
-        var parts = itemToCreate.id.split(":");
-        if (parts.length > 1) {
-          itemToCreate.id = parts[0];
-        }
-      }
-      request.setBody(itemToCreate);
-    }'
-  }
-}
-
 // App Service Plan
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: 'asp-${resourceToken}'

@@ -2,12 +2,16 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Cosmos;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Container = Microsoft.Azure.Cosmos.Container;
 
 namespace Microsoft.AspNetCore.Datasync.CosmosDb
 {
@@ -22,8 +26,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// Container where the <see cref="TEntity"/> is stored.
         /// </summary>
         private readonly Container container;
-        private readonly List<string> partitionKeyPropertyNames;
+
         private readonly ItemRequestOptions itemRequestOptions;
+        private readonly List<string> partitionKeyPropertyNames;
 
         /// <summary>
         /// Create a new <see cref="CosmosTableRepository{TEntity}"/> for accessing the database.
@@ -74,7 +79,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// </summary>
         /// <returns>An <see cref="IQueryable{T}"/> for the entities in the data store.</returns>
         public IQueryable<TEntity> AsQueryable() => container.GetItemLinqQueryable<TEntity>(true);
-        
+
         /// <summary>
         /// Returns an unexecuted <see cref="IQueryable{T}"/> that represents the data store as a whole.
         /// This is adjusted by the <see cref="TableController{TEntity}"/> to account for filtering and
@@ -101,13 +106,25 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 {
                     entity.Id = Guid.NewGuid().ToString("N");
                 }
+                // TODO should we support null partition key by building on e?
+                var lookupId = entity.Id;
+                try
+                {
+                    lookupId = ParseIdAndPartitionKey(entity.Id).id;
+                }
+                catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
-                TEntity newEntity = await container.CreateItemAsync(entity, requestOptions: itemRequestOptions, cancellationToken: token);
+                
+                var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
+                
+                var newObject = await container.CreateItemAsync<dynamic>(jObjectEntity, requestOptions: itemRequestOptions, cancellationToken: token);
+                var newEntity = newObject.Resource.ToObject<TEntity>();
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.Conflict)
             {
+                //TODO if the entity.Id isn't constructed this will fail
                 var (id, partitionKey) = ParseIdAndPartitionKey(entity.Id);
                 TEntity storeEntity = await container.ReadItemAsync<TEntity>(id, partitionKey, cancellationToken: token);
                 throw new ConflictException(storeEntity);
@@ -238,8 +255,12 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
                 }
                 catch { }
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
+                
+                var jObjectEntity = await ConvertEntityToJson(entity, lookupId);
+
                 // TODO can compare etag versions as part of options
-                TEntity newEntity = await container.ReplaceItemAsync(entity, lookupId, requestOptions: itemRequestOptions, cancellationToken: token);
+                var newObject = await container.ReplaceItemAsync<dynamic>(jObjectEntity, lookupId, requestOptions: itemRequestOptions, cancellationToken: token);
+                var newEntity = newObject.Resource.ToObject<TEntity>();
                 entity.UpdatedAt = newEntity.UpdatedAt;
                 entity.Version = newEntity.Version;
                 entity.Id = originalId;
@@ -262,5 +283,24 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <returns>True if we need to throw a <see cref="PreconditionFailedException"/>.</returns>
         internal static bool PreconditionFailed(byte[] expectedVersion, byte[] currentVersion)
            => expectedVersion != null && currentVersion?.SequenceEqual(expectedVersion) != true;
+
+        /// <summary>
+        /// Converts the <paramref name="entity"/> to a json object and sets the id 
+        /// to the <paramref name="lookupId"/> using the Comsos DB serializer.
+        /// </summary>
+        /// <param name="entity">Entity to convert.</param>
+        /// <param name="lookupId"></param>
+        /// <returns></returns>
+        private async Task<JObject> ConvertEntityToJson(TEntity entity, string lookupId)
+        {
+            ArgumentNullException.ThrowIfNull(entity, nameof(entity));
+            ArgumentNullException.ThrowIfNull(lookupId, nameof(lookupId));
+            using var stream = container.Database.Client.ClientOptions.Serializer.ToStream(entity);
+            var reader = new StreamReader(stream, Encoding.UTF8);
+            var jsonString = await reader.ReadToEndAsync();
+            var jObjectEntity = JObject.Parse(jsonString);
+            jObjectEntity["id"] = lookupId;
+            return jObjectEntity;
+        }
     }
 }

@@ -25,11 +25,7 @@ public class CosmosTableRepository_Tests : IDisposable
     public CosmosTableRepository_Tests()
     {
         movieContainer = CosmosDbHelper.GetContainer().Result;
-        var itemRequestOptions = new ItemRequestOptions
-        {
-            PreTriggers = new List<string> { "CleanId" }
-        };
-        repository = new(movieContainer, partitionKeyPropertyNames, itemRequestOptions);
+        repository = new(movieContainer, partitionKeyPropertyNames);
     }
 
     [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "Test Case - no inherited classes")]
@@ -371,6 +367,7 @@ public class CosmosTableRepository_Tests : IDisposable
 
         var entity = blackPantherMovie.Clone();
         entity.Id = movie.Id;
+        entity.Rating = movie.Rating;
         var version = original.Version.ToArray();
 
         // Act

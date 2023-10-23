@@ -7,19 +7,21 @@ Accept: application/json
 ZUMO-API-VERSION: 3.0.0
 
 ### GET Request
-GET https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+GET https://{{hostname}}:{{port}}/tables/todoitem/2:Samwise
 Accept: application/json
 ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
 
 ### POST Request
 POST https://{{hostname}}:{{port}}/tables/todoitem
 Content-Type: application/json
 ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
 
 {
-  "id": "3:Samwise",
+  "id": "2:Samwise",
   "UserId": "Samwise",
-  "Title": "Count calories",
+  "Title": "Spy on Frodo",
   "IsComplete": false
 }
 
@@ -29,12 +31,17 @@ ZUMO-API-VERSION: 3.0.0
 PUT https://{{hostname}}:{{port}}/tables/todoitem/2:Samwise
 Content-Type: application/json
 ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
 
 {
-  "id": "2:Samwise",
-  "UserId": "Samwise",
-  "Title": "Protect Frodo",
-  "Completed": true
+    "IsComplete": true,
+    "Title": "Spy on Frodo",
+    "UserId": "Samwise",
+    "id": "2:Samwise",
+    "UpdatedAt": "2023-10-22T23:06:42.5962038-06:00",
+    "Version": "",
+    "_etag": "\"00000000-0000-0000-056e-b66cc22001da\"",
+    "Deleted": false,
 }
 
 ###
@@ -43,6 +50,7 @@ ZUMO-API-VERSION: 3.0.0
 PATCH https://{{hostname}}:{{port}}/tables/todoitem/2:Samwise
 Content-Type: application/json
 ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
 
 {
   "Title": "Try not to wear it"
@@ -51,7 +59,8 @@ ZUMO-API-VERSION: 3.0.0
 ###
 
 ### DELETE Request
-DELETE https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+DELETE https://{{hostname}}:{{port}}/tables/todoitem/2:Samwise
 ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
 
 ###
