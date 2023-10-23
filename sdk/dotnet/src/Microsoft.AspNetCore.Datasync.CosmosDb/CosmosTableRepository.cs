@@ -113,9 +113,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.Conflict)
             {
-                //TODO if the entity.Id isn't constructed this will fail
-                var (id, partitionKey) = cosmosRepositoryOptions.ParseIdAndPartitionKey(entity.Id);
-                TEntity storeEntity = await container.ReadItemAsync<TEntity>(id, partitionKey, cosmosRepositoryOptions.ItemRequestOptions, token);
+                var storeEntity = await ReadAsync(entity.Id, token);
                 throw new ConflictException(storeEntity);
             }
             catch (CosmosException cosmosException)
