@@ -51,6 +51,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <summary>
         /// The row version for the entity.
         /// </summary>
+        [JsonIgnore]
         public byte[] Version
         {
             get => Encoding.UTF8.GetBytes(EntityTag ?? string.Empty);
