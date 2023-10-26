@@ -338,4 +338,58 @@ public class CosmosTableRepository_Tests : IDisposable
         Assert.Equal<IMovie>(expected, entity);
         AssertEx.SystemPropertiesChanged(original, entity);
     }
+
+    [Fact]
+    public async Task ConvertEntityToJson_ShouldReturnCorrectIsoDate()
+    {
+        // Arrange
+        var entity = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
+        var lookupId = entity.Id.Split(':')[0];
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // Act
+        var result = await repository.ConvertEntityToJson(entity, lookupId);
+
+        // Assert
+        Assert.NotNull(result);
+
+        string expectedDateFormat = entity.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
+        Assert.Equal(expectedDateFormat, result["UpdatedAt"].ToString());
+    }
+
+    [Fact]
+    public async Task ConvertEntityToJson_ShouldReturnCorrectJObject()
+    {
+        // Arrange
+        var entity = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
+        var lookupId = entity.Id.Split(':')[0];
+
+        // Act
+        var result = await repository.ConvertEntityToJson(entity, lookupId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(lookupId, result["id"].ToString());
+    }
+
+    [Fact]
+    public async Task ConvertEntityToJson_ShouldThrowArgumentNullException_WhenEntityIsNull()
+    {
+        // Arrange
+        var lookupId = "id-123";
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => repository.ConvertEntityToJson(null, lookupId));
+    }
+
+    [Fact]
+    public async Task ConvertEntityToJson_ShouldThrowArgumentNullException_WhenIdIsNullOrEmpty()
+    {
+        // Arrange
+        var entity = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.ConvertEntityToJson(entity, null));
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.ConvertEntityToJson(entity, string.Empty));
+    }
 }

@@ -2,10 +2,8 @@
 // Licensed under the MIT License.
 
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Linq;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -221,10 +219,10 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             {
                 entity.UpdatedAt = DateTimeOffset.UtcNow;
 
-                var jObjectEntity = await ConvertEntityToJson(entity, parsedId);
+                var dynamicJsonEntity = await ConvertEntityToJson(entity, parsedId);
 
                 var oneTimeRequestOptions = CreateOptionsForThisRequest(version);
-                var newObject = await container.ReplaceItemAsync<dynamic>(jObjectEntity, parsedId, requestOptions: oneTimeRequestOptions, cancellationToken: token);
+                var newObject = await container.ReplaceItemAsync<dynamic>(dynamicJsonEntity, parsedId, requestOptions: oneTimeRequestOptions, cancellationToken: token);
                 var newEntity = newObject.Resource.ToObject<TEntity>();
 
                 entity.UpdatedAt = newEntity.UpdatedAt;
@@ -252,16 +250,27 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// <param name="entity">Entity to convert.</param>
         /// <param name="lookupId"></param>
         /// <returns></returns>
-        private async Task<JObject> ConvertEntityToJson(TEntity entity, string lookupId)
+        internal async Task<JObject> ConvertEntityToJson(TEntity entity, string lookupId)
         {
-            // TODO need tests
             ArgumentNullException.ThrowIfNull(entity, nameof(entity));
-            ArgumentNullException.ThrowIfNull(lookupId, nameof(lookupId));
+            if (string.IsNullOrEmpty(lookupId))
+            {
+                throw new ArgumentException("Cannot be null or empty", nameof(lookupId));
+            }
+
             using var stream = container.Database.Client.ClientOptions.Serializer.ToStream(entity);
             var reader = new StreamReader(stream, Encoding.UTF8);
             var jsonString = await reader.ReadToEndAsync();
             var jObjectEntity = JObject.Parse(jsonString);
+            
+            // Set IDs to lookupId so that we don't save a constructed ID
             jObjectEntity["id"] = lookupId;
+            // ensure we save the UpdatedAt property in the ISO format that Cosmos expects otherwise the 
+            // sync will fail when comparing to the EdmDateTimeOffset value that is sent from the client
+            string propName = jObjectEntity.Properties()
+                .FirstOrDefault(p => string.Equals(p.Name, "UpdatedAt", StringComparison.OrdinalIgnoreCase))?.Name ?? "UpdatedAt";
+            jObjectEntity[propName] = entity.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
+
             return jObjectEntity;
         }
 
@@ -271,9 +280,8 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// </summary>
         /// <param name="version"></param>
         /// <returns></returns>
-        private ItemRequestOptions CreateOptionsForThisRequest(byte[] version)
+        internal ItemRequestOptions CreateOptionsForThisRequest(byte[] version)
         {
-            // TODO need tests
             var oneTimeOptions = cosmosRepositoryOptions.ItemRequestOptions.ShallowCopy() as ItemRequestOptions;
             if (version != null)
             {
