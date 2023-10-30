@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All Rights Reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Cosmos.Scripts;
-using TestData = Datasync.Common.Test.TestData;
-
 namespace Microsoft.AspNetCore.Datasync.CosmosDb.Test.Helpers;
 
 [ExcludeFromCodeCoverage]
@@ -14,7 +11,11 @@ internal static class CosmosDbHelper
         var databaseName = Guid.NewGuid().ToString("N");
         // Default emulator connection string, this is the same for everyone (https://learn.microsoft.com/en-us/azure/cosmos-db/emulator#authentication)
         var connectionString = "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
-        var client = new CosmosClient(connectionString);
+        CosmosClientOptions options = new()
+        {
+            Serializer = new CosmosDatasyncSerializer()
+        };
+        var client = new CosmosClient(connectionString, options);
         Database database = await client.CreateDatabaseAsync(databaseName);
         Container container = await database.CreateContainerAsync("movies", "/Rating");
 

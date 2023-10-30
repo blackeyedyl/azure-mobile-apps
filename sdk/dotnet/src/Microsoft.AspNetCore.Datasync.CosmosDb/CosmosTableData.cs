@@ -30,18 +30,18 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         {
             if (cosmosId?.Contains(':') == true)
             {
-                ServerId = cosmosId.Split(':')[0];
+                LookupId = cosmosId.Split(':')[0];
             }
             else
             {
-                ServerId = cosmosId;
+                LookupId = cosmosId;
             }
         }
 
-        protected virtual string TranslateToId() => ServerId;
+        protected virtual string TranslateToId() => LookupId;
 
         [JsonIgnore]
-        protected string ServerId { get; private set; }
+        public string LookupId { get; private set; }
 
         /// <summary>
         /// The date/time that the entity was updated.

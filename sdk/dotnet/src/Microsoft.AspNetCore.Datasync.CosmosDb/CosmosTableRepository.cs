@@ -257,7 +257,6 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             {
                 throw new ArgumentException("Cannot be null or empty", nameof(lookupId));
             }
-
             using var stream = container.Database.Client.ClientOptions.Serializer.ToStream(entity);
             var reader = new StreamReader(stream, Encoding.UTF8);
             var jsonString = await reader.ReadToEndAsync();
@@ -265,11 +264,6 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             
             // Set IDs to lookupId so that we don't save a constructed ID
             jObjectEntity["id"] = lookupId;
-            // ensure we save the UpdatedAt property in the ISO format that Cosmos expects otherwise the 
-            // sync will fail when comparing to the EdmDateTimeOffset value that is sent from the client
-            string propName = jObjectEntity.Properties()
-                .FirstOrDefault(p => string.Equals(p.Name, "UpdatedAt", StringComparison.OrdinalIgnoreCase))?.Name ?? "UpdatedAt";
-            jObjectEntity[propName] = entity.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
 
             return jObjectEntity;
         }

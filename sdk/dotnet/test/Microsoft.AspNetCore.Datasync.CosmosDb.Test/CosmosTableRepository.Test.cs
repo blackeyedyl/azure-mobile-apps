@@ -340,24 +340,6 @@ public class CosmosTableRepository_Tests : IDisposable
     }
 
     [Fact]
-    public async Task ConvertEntityToJson_ShouldReturnCorrectIsoDate()
-    {
-        // Arrange
-        var entity = Movies.GetRandomMovie<CosmosMovieWithPartitionKey>();
-        var lookupId = entity.Id.Split(':')[0];
-        entity.UpdatedAt = DateTimeOffset.UtcNow;
-
-        // Act
-        var result = await repository.ConvertEntityToJson(entity, lookupId);
-
-        // Assert
-        Assert.NotNull(result);
-
-        string expectedDateFormat = entity.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
-        Assert.Equal(expectedDateFormat, result["UpdatedAt"].ToString());
-    }
-
-    [Fact]
     public async Task ConvertEntityToJson_ShouldReturnCorrectJObject()
     {
         // Arrange
