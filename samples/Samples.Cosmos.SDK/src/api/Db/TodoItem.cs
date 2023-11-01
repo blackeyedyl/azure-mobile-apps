@@ -15,6 +15,6 @@ public class TodoItem : CosmosTableData
 
     protected override string TranslateToId()
     {
-        return $"{ServerId}:{UserId}";
+        return $"{LookupId}:{UserId}";
     }
 }

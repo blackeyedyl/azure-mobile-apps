@@ -82,5 +82,5 @@ public class CosmosMovieWithPartitionKey : CosmosTableData, IMovie, IEquatable<I
         string json = JsonSerializer.Serialize(this);
         return JsonSerializer.Deserialize<Dictionary<string, object>>(json)!;
     }
-    protected override string TranslateToId() => $"{ServerId}:{Rating}";
+    protected override string TranslateToId() => $"{LookupId}:{Rating}";
 }

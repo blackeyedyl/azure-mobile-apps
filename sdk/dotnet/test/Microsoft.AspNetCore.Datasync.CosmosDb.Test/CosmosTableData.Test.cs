@@ -138,6 +138,6 @@ public class CosmosTableData_Tests
     {
         public string PartitionKey { get; set; }
 
-        protected override string TranslateToId() => $"{ServerId}:{PartitionKey}";
+        protected override string TranslateToId() => $"{LookupId}:{PartitionKey}";
     }
 }
