@@ -18,6 +18,8 @@ public class CosmosTableRepository_Tests : IDisposable
         Year = 2018
     };
 
+    internal class User : CosmosTableData { }
+
     internal class NotEntityModel : ITableData
     {
         public string Id { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
@@ -68,6 +70,12 @@ public class CosmosTableRepository_Tests : IDisposable
     public void CosmosTableRepository_Throws_OnNonSupported_GenericParam()
     {
         Assert.Throws<InvalidCastException>(() => new CosmosTableRepository<NotEntityModel>(movieContainer));
+    }
+
+    [Fact]
+    public void CosmosTableRepository_Throws_OnEntityNamedUser()
+    {
+        Assert.Throws<InvalidCastException>(() => new CosmosTableRepository<User>(movieContainer));
     }
 
     [Fact]

@@ -43,7 +43,10 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             {
                 throw new InvalidCastException($"Entity type {typeof(TEntity).Name} is not a valid entity type.");
             }
-
+            if (typeof(TEntity).Name == "User")
+            {
+                throw new InvalidCastException("User is a reserved entity type name in Cosmos and will not work with AsQueryable() oData library.");
+            }
             ArgumentNullException.ThrowIfNull(container, nameof(container));
             try
             {
