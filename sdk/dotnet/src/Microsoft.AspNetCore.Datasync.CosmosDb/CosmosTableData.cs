@@ -17,29 +17,29 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
     public class CosmosTableData : ITableData
     {
         /// <summary>
+        /// True if the entity is marked as deleted.
+        /// </summary>
+        public bool Deleted { get; set; }
+
+        /// <summary>
+        /// The ETag for the entity.
+        /// </summary>
+        [JsonProperty("_etag")]
+        public string EntityTag { get; set; }
+
+        /// <summary>
         /// The globally unique ID for this entity.
         /// </summary>
         [JsonProperty("id")]
-        public string Id 
+        public string Id
         {
             get => TranslateToId();
             set => TranslateFromId(value);
         }
 
-        protected virtual void TranslateFromId(string cosmosId)
-        {
-            if (cosmosId?.Contains(':') == true)
-            {
-                LookupId = cosmosId.Split(':')[0];
-            }
-            else
-            {
-                LookupId = cosmosId;
-            }
-        }
-
-        protected virtual string TranslateToId() => LookupId;
-
+        /// <summary>
+        /// Gets or sets the Cosmos database lookup ID for this entity.
+        /// </summary>
         [JsonIgnore]
         public string LookupId { get; private set; }
 
@@ -59,17 +59,6 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         }
 
         /// <summary>
-        /// The ETag for the entity.
-        /// </summary>
-        [JsonProperty("_etag")]
-        public string EntityTag { get; set; }
-
-        /// <summary>
-        /// True if the entity is marked as deleted.
-        /// </summary>
-        public bool Deleted { get; set; }
-
-        /// <summary>
         /// Implements the <see cref="IEquatable{T}"/> interface to determine
         /// if the system properties match the system properties of the other
         /// entity.
@@ -82,5 +71,27 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             && UpdatedAt == other.UpdatedAt
             && Deleted == other.Deleted
             && Version.SequenceEqual(other.Version);
+
+        /// <summary>
+        /// Translates the ID from the Cosmos ID to the Lookup ID.
+        /// </summary>
+        /// <param name="cosmosId"></param>
+        protected virtual void TranslateFromId(string cosmosId)
+        {
+            if (cosmosId?.Contains(':') == true)
+            {
+                LookupId = cosmosId.Split(':')[0];
+            }
+            else
+            {
+                LookupId = cosmosId;
+            }
+        }
+
+        /// <summary>
+        /// Translates the ID from the Lookup ID to the Cosmos ID.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual string TranslateToId() => LookupId;
     }
 }
