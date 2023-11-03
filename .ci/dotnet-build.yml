@@ -293,8 +293,8 @@ stages:
 
           - task: GitHubRelease@1
             inputs:
-              gitHubConnection: github-blackeyedyl-azure-mobile-apps
-              repositoryName: 'blackeyedyl/azure-mobile-apps'
+              gitHubConnection: github-adhal-azure-mobile-apps
+              repositoryName: 'azure/azure-mobile-apps'
               tag: $(githubReleaseVersion)
               action: 'edit'
               assets: $(Build.ArtifactStagingDirectory)/nuget/*.nupkg
