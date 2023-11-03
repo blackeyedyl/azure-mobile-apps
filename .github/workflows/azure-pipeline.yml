@@ -60,7 +60,7 @@ steps:
     arguments: '--configuration $(buildConfiguration) /p:PackageVersion=$(Build.BuildNumber)'
     packagesToPack: '$(solution)'
     nobuild: true
-    versionEnvVar: BuildNumber 
+    versionEnvVar: Build.BuildNumber 
 
 - task: NuGetCommand@2
   displayName: 'nuget push'
