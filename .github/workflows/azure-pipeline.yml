@@ -39,18 +39,6 @@ variables:
   value: '$(Build.BuildNumber)'
   
 steps:
-# - task: NuGetCommand@2
-#   inputs:
-#     restoreSolution: '$(solution)'
-
-# - task: DotNetCoreCLI@2
-#   displayName: 'dotnet restore'
-#   inputs:
-#     command: 'restore'
-#     arguments: '--configuration $(buildConfiguration)'
-#     projects: '$(solution)'
-#     version: $(dotnetVersion)
-
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
   inputs:
@@ -58,13 +46,6 @@ steps:
     arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(buildVersion)'
     projects: '$(solution)'
     version: $(dotnetVersion)
-
-#- task: DotNetCoreCLI@2
-#  displayName: 'dotnet test'
-#  inputs:
-#    command: 'test'
-#    arguments: '--configuration $(buildConfiguration)'
-#    projects: '$(netSdkPath)/test/*Datasync*/*.csproj'
 
 - task: DotNetCoreCLI@2
   displayName: "dotnet pack"
