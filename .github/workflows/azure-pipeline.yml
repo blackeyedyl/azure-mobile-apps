@@ -39,12 +39,12 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet build'
-  inputs:
-    command: 'build'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(Build.BuildNumber)'
-    projects: '$(solution)'
+# - task: DotNetCoreCLI@2
+#   displayName: 'dotnet build'
+#   inputs:
+#     command: 'build'
+#     arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(Build.BuildNumber)'
+#     projects: '$(solution)'
 
 #- task: DotNetCoreCLI@2
 #  displayName: 'dotnet test'
@@ -57,10 +57,9 @@ steps:
   displayName: "dotnet pack"
   inputs:
     command: 'pack'
-    arguments: '--configuration $(buildConfiguration) /p:PackageVersion=$(Build.BuildNumber)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(Build.BuildNumber)'
     packagesToPack: '$(solution)'
-    nobuild: true
-    versionEnvVar: Build.BuildNumber 
+#    nobuild: true
 
 - task: NuGetCommand@2
   displayName: 'nuget push'
