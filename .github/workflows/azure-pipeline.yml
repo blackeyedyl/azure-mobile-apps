@@ -25,6 +25,7 @@ variables:
   clientProject: '.\src\Microsoft.Datasync.Client\Microsoft.Datasync.Client.csproj'
   netSdkPath: 'sdk/dotnet'
   solution: '$(netSdkPath)/Datasync.Framework.sln'
+  testPath: '$(netSdkPath)/test'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
@@ -47,4 +48,4 @@ steps:
   inputs:
     command: 'test'
     arguments: '--configuration $(buildConfiguration)'
-    projects: '$(solution)'
+    projects: '$(testPath)/*Datasync*.csproj'
