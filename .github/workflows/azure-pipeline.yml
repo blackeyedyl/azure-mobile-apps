@@ -43,7 +43,7 @@ steps:
   displayName: 'dotnet build'
   inputs:
     command: 'build'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(Build.BuildNumber)'
     projects: '$(solution)'
 
 #- task: DotNetCoreCLI@2
@@ -52,6 +52,15 @@ steps:
 #    command: 'test'
 #    arguments: '--configuration $(buildConfiguration)'
 #    projects: '$(netSdkPath)/test/*Datasync*/*.csproj'
+
+- task: DotNetCoreCLI@2
+  displayName: "dotnet pack"
+  inputs:
+    command: 'pack'
+    arguments: '--configuration $(buildConfiguration) /p:PackageVersion=$(Build.BuildNumber)'
+    packagesToPack: '$(solution)'
+    nobuild: true
+    versionEnvVar: BuildNumber 
 
 - task: NuGetCommand@2
   displayName: 'nuget push'
