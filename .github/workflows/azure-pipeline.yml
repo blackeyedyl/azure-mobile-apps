@@ -34,7 +34,7 @@ variables:
 - name: buildConfiguration
   value: 'Release'
 - name: buildVersion
-  value: $(date:yy.Mdd)$(rev:.r) 
+  value: '$(date:yy.Mdd)$(rev:.r)'
 
 steps:
 - task: NuGetCommand@2
