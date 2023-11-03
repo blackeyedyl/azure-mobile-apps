@@ -1,0 +1,48 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - 'sdk/dotnet/*'
+      - '.ci/*'
+    exclude:
+      - .github/*
+      - .vscode/*
+      - docs/*
+      - samples/*
+      - .gitignore
+      - CODE_OF_CONDUCT.md
+      - LICENSE.txt
+      - README.md
+      - SECURITY.md
+      - SUPPORT.md
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  clientProject: '.\src\Microsoft.Datasync.Client\Microsoft.Datasync.Client.csproj'
+  netSdkPath: 'sdk/dotnet'
+  soulution: '$(netSdkPath)/Datasync.Framework.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  inputs:
+    restoreSolution: '$(solution)'
+
+#- task: VSBuild@1
+#  inputs:
+#    solution: '$(solution)'
+#    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
+#    platform: '$(buildPlatform)'
+#    configuration: '$(buildConfiguration)'
+
+#- task: VSTest@2
+#  inputs:
+#    platform: '$(buildPlatform)'
+#    configuration: '$(buildConfiguration)'
