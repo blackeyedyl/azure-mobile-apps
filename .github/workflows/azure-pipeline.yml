@@ -33,25 +33,31 @@ variables:
   value: 'Any CPU'
 - name: buildConfiguration
   value: 'Release'
+- name: dotnetVersion
+  value: '6.0.x'
+- name: buildVersion
+  value: '$(Build.BuildNumber)'
   
 steps:
 # - task: NuGetCommand@2
 #   inputs:
 #     restoreSolution: '$(solution)'
 
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet restore'
-  inputs:
-    command: 'restore'
-    arguments: '--configuration $(buildConfiguration)'
-    projects: '$(solution)'
+# - task: DotNetCoreCLI@2
+#   displayName: 'dotnet restore'
+#   inputs:
+#     command: 'restore'
+#     arguments: '--configuration $(buildConfiguration)'
+#     projects: '$(solution)'
+#     version: $(dotnetVersion)
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
   inputs:
     command: 'build'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(Build.BuildNumber)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(buildVersion)'
     projects: '$(solution)'
+    version: $(dotnetVersion)
 
 #- task: DotNetCoreCLI@2
 #  displayName: 'dotnet test'
@@ -64,10 +70,12 @@ steps:
   displayName: "dotnet pack"
   inputs:
     command: 'pack'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber) /p:PackageVersion=$(Build.BuildNumber)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(buildVersion) /p:PackageVersion=$(buildVersion)'
     packagesToPack: '$(solution)'
 #    nobuild: true
-
+    version: $(dotnetVersion)
+    versionEnvVar: buildVersion 
+    
 - task: NuGetCommand@2
   displayName: 'nuget push'
   inputs:
