@@ -24,7 +24,7 @@ pool:
 variables:
   clientProject: '.\src\Microsoft.Datasync.Client\Microsoft.Datasync.Client.csproj'
   netSdkPath: 'sdk/dotnet'
-  soulution: '$(netSdkPath)/Datasync.Framework.sln'
+  solution: '$(netSdkPath)/Datasync.Framework.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
