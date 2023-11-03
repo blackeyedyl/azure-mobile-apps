@@ -43,7 +43,7 @@ steps:
   displayName: 'dotnet build'
   inputs:
     command: 'build'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildId)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildNumber)'
     projects: '$(solution)'
 
 #- task: DotNetCoreCLI@2
