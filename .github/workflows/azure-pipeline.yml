@@ -22,13 +22,17 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  clientProject: '.\src\Microsoft.Datasync.Client\Microsoft.Datasync.Client.csproj'
+  group: internal-feed-variables
   netSdkPath: 'sdk/dotnet'
   solution: '$(netSdkPath)/Datasync.Framework.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
 steps:
+- script: echo 'FeedName'
+- script: echo $(VstsFeedName)
+- script: echo 'netSdkPath'
+- script: echo $(netSdkPath)
 - task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
@@ -48,3 +52,14 @@ steps:
     command: 'test'
     arguments: '--configuration $(buildConfiguration)'
     projects: '$(netSdkPath)/test/*Datasync*/*.csproj'
+
+- task: NuGetCommand@2
+  displayName: 'nuget push'
+  inputs:
+    command: 'push'
+    feedsToUse: 'select'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '$(VstsFeedName)'
+    versioningScheme: 'off'
+    allowPackageConflicts: true
