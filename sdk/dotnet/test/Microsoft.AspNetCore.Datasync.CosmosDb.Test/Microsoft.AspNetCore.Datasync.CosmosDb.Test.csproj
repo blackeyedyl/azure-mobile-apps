@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
 	<PropertyGroup>
 		<LangVersion>10.0</LangVersion>
 		<TargetFramework>net6.0</TargetFramework>
@@ -8,9 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="FluentAssertions" Version="6.12.0" />
-		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.13" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.13" />
+		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.36.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
 		<PackageReference Include="xunit" Version="2.5.0" />
 		<PackageReference Include="Xunit.Combinatorial" Version="1.6.24" />
@@ -26,10 +25,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Microsoft.AspNetCore.Datasync.CosmosDb\Microsoft.AspNetCore.Datasync.CosmosDb.csproj" />
-		<ProjectReference Include="..\..\src\Microsoft.AspNetCore.Datasync.EFCore\Microsoft.AspNetCore.Datasync.EFCore.csproj" />
-		<ProjectReference Include="..\..\src\Microsoft.AspNetCore.Datasync.InMemory\Microsoft.AspNetCore.Datasync.InMemory.csproj" />
-		<ProjectReference Include="..\..\src\Microsoft.AspNetCore.Datasync.LiteDb\Microsoft.AspNetCore.Datasync.LiteDb.csproj" />
-		<ProjectReference Include="..\..\src\Microsoft.AspNetCore.Datasync\Microsoft.AspNetCore.Datasync.csproj" />
-		<ProjectReference Include="..\..\src\Microsoft.Datasync.Client\Microsoft.Datasync.Client.csproj" />
+		<ProjectReference Include="..\Datasync.Common.Test\Datasync.Common.Test.csproj" />
 	</ItemGroup>
+	
 </Project>

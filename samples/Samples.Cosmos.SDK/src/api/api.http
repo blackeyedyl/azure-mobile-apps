@@ -1,0 +1,66 @@
+@hostname=localhost
+@port=7048
+
+### GET Request
+GET https://{{hostname}}:{{port}}/tables/todoitem/
+Accept: application/json
+ZUMO-API-VERSION: 3.0.0
+
+### GET Request
+GET https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+Accept: application/json
+ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
+
+### POST Request
+POST https://{{hostname}}:{{port}}/tables/todoitem
+Content-Type: application/json
+ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
+
+{
+  "id": "4:Samwise",
+  "UserId": "Samwise",
+  "Title": "Stuff",
+  "IsComplete": false
+}
+
+###
+
+### PUT Request
+PUT https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+Content-Type: application/json
+ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
+
+{
+    "IsComplete": true,
+    "Title": "Spy on Frodo",
+    "UserId": "Samwise",
+    "id": "3:Samwise",
+    "UpdatedAt": "2023-10-22T23:06:42.5962038-06:00",
+    "Version": "",
+    "_etag": "\"00000000-0000-0000-056e-b66cc22001da\"",
+    "Deleted": false,
+}
+
+###
+
+### PATCH Request
+PATCH https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+Content-Type: application/json
+ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
+
+{
+  "Title": "Try not to wear it"
+}
+
+###
+
+### DELETE Request
+DELETE https://{{hostname}}:{{port}}/tables/todoitem/3:Samwise
+ZUMO-API-VERSION: 3.0.0
+# Authorization: Bearer your_token_here
+
+###
