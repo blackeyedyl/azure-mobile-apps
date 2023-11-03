@@ -18,7 +18,7 @@ trigger:
       - SECURITY.md
       - SUPPORT.md
 
-name: Azure Mobile Apps $(date:yy.Mdd)$(rev:.r)'
+name: $(date:yy.Mdd)$(rev:.r)
 
 pool:
   vmImage: 'windows-latest'
@@ -33,9 +33,7 @@ variables:
   value: 'Any CPU'
 - name: buildConfiguration
   value: 'Release'
-- name: buildVersion
-  value: '$(date:yy.Mdd)$(rev:.r)'
-
+  
 steps:
 - task: NuGetCommand@2
   inputs:
@@ -45,7 +43,7 @@ steps:
   displayName: 'dotnet build'
   inputs:
     command: 'build'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(buildVersion)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(Build.BuildId)'
     projects: '$(solution)'
 
 #- task: DotNetCoreCLI@2
