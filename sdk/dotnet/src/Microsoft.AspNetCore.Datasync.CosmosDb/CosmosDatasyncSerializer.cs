@@ -1,4 +1,7 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿// Copyright (c) Microsoft Corporation. All Rights Reserved.
+// Licensed under the MIT License.
+
+using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -7,6 +10,12 @@ using System.Text;
 
 namespace Microsoft.AspNetCore.Datasync.CosmosDb;
 
+/// <summary>
+/// Implements the recommended <see cref="CosmosSerializer"/> that works with the Datasync SDK. Specifically,
+/// this helps with the following converting <see cref="DateTimeOffset"/> to ISO8601 format, because the default
+/// Datasync SDK serializer prefers the interchange format 'yyyy-MM-dd'T'HH:mm:ss.fffK' format which doesn't
+/// play well with Cosmos DB.
+/// </summary>
 public class CosmosDatasyncSerializer : CosmosSerializer
 {
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
@@ -65,6 +74,10 @@ public class CosmosDatasyncSerializer : CosmosSerializer
         return streamPayload;
     }
 
+    /// <summary>
+    /// Creates the recommended default <see cref="JsonSerializationSetting"/>s for the Cosmos SDK.
+    /// </summary>
+    /// <returns></returns>
     private JsonSerializerSettings CreateDefaultSettings()
     {
         JsonSerializerSettings defaultSettings = new()

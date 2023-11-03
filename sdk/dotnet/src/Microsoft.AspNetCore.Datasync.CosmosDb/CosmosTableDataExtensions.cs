@@ -9,8 +9,14 @@ using System.Reflection;
 
 namespace Microsoft.AspNetCore.Datasync.CosmosDb
 {
+    /// <summary>
+    /// Extensions for <see cref="CosmosTableData"/>.
+    /// </summary>
     public static class CosmosTableDataExtensions
     {
+        /// <summary>
+        /// List of types that can be converted to a <see cref="double"/>.
+        /// </summary>
         internal static List<Type> doubleTypes = new()
         {
             typeof(byte),

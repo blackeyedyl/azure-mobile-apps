@@ -26,6 +26,9 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         /// </summary>
         private readonly Container container;
 
+        /// <summary>
+        /// Options for the repository.
+        /// </summary>
         private readonly CosmosRepositoryOptions cosmosRepositoryOptions;
 
         /// <summary>
@@ -264,7 +267,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
             var reader = new StreamReader(stream, Encoding.UTF8);
             var jsonString = await reader.ReadToEndAsync();
             var jObjectEntity = JObject.Parse(jsonString);
-            
+
             // Set IDs to lookupId so that we don't save a constructed ID
             jObjectEntity["id"] = lookupId;
 
@@ -272,7 +275,7 @@ namespace Microsoft.AspNetCore.Datasync.CosmosDb
         }
 
         /// <summary>
-        /// Copies the <see cref="ItemRequestOptions"/> from <see cref="cosmosRepositoryOptions"/> and sets the IfMatchEtag 
+        /// Copies the <see cref="ItemRequestOptions"/> from <see cref="cosmosRepositoryOptions"/> and sets the IfMatchEtag
         /// to the provided version if not null. This is used to verify the precondition for the request.
         /// </summary>
         /// <param name="version"></param>
