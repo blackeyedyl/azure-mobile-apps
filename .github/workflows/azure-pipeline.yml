@@ -70,10 +70,11 @@ steps:
   displayName: "dotnet pack"
   inputs:
     command: 'pack'
-    arguments: '--configuration $(buildConfiguration) /p:Version=$(buildVersion) /p:PackageVersion=$(buildVersion)'
+    arguments: '--configuration $(buildConfiguration)'
     packagesToPack: '$(solution)'
-#    nobuild: true
+    nobuild: true
     version: $(dotnetVersion)
+    versioningScheme: byEnvVar
     versionEnvVar: buildVersion 
     
 - task: NuGetCommand@2
