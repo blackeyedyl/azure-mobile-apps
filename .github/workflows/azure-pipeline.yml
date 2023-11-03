@@ -18,6 +18,8 @@ trigger:
       - SECURITY.md
       - SUPPORT.md
 
+name: Azure Mobile Apps $(date:yy.Mdd)$(rev:.r)'
+
 pool:
   vmImage: 'windows-latest'
 
@@ -31,14 +33,10 @@ variables:
   value: 'Any CPU'
 - name: buildConfiguration
   value: 'Release'
+- name: buildVersion
+  value: $(date:yy.Mdd)$(rev:.r) 
 
 steps:
-- script: echo 'FeedName'
-- script: echo $(VstsFeedName)
-- script: echo 'netSdkPath'
-- script: echo $(netSdkPath)
-- task: NuGetToolInstaller@1
-
 - task: NuGetCommand@2
   inputs:
     restoreSolution: '$(solution)'
@@ -47,7 +45,7 @@ steps:
   displayName: 'dotnet build'
   inputs:
     command: 'build'
-    arguments: '--configuration $(buildConfiguration)'
+    arguments: '--configuration $(buildConfiguration) /p:Version=$(buildVersion)'
     projects: '$(solution)'
 
 - task: DotNetCoreCLI@2
