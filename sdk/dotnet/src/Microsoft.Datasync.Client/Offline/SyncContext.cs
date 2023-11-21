@@ -287,6 +287,114 @@ namespace Microsoft.Datasync.Client.Offline
         #endregion
 
         #region Data synchronization methods
+
+        public async Task PullItemAsync(string tableName, string id, PullOptions options, CancellationToken cancellationToken = default)
+        {
+            Arguments.IsValidTableName(tableName, nameof(tableName));
+            Arguments.IsNotNullOrWhitespace(id, nameof(id));
+            await EnsureContextIsInitializedAsync(cancellationToken).ConfigureAwait(false);
+            string[] relatedTables = options.PushOtherTables ? null : new string[] { tableName };
+
+            var table = new RemoteTable(tableName, ServiceClient); // We need the RemoteTable, not the IRemoteTable here.
+            var queryId = options.QueryId ?? GetQueryIdFromQuery(tableName, id);
+
+            if (await ItemIsDirtyAsync(tableName, id, cancellationToken).ConfigureAwait(false))
+            {
+                await PushContext.PushItemsAsync(relatedTables, cancellationToken).ConfigureAwait(false);
+
+                // If the table is still dirty, then throw an error.
+                if (await TableIsDirtyAsync(tableName, cancellationToken).ConfigureAwait(false))
+                {
+                    throw new DatasyncInvalidOperationException($"There are still pending operations for table '{tableName}' after a push");
+                }
+            }
+
+            var deltaToken = await DeltaTokenStore.GetDeltaTokenAsync(tableName, queryId, cancellationToken).ConfigureAwait(false);
+            SendPullStartedEvent(tableName);
+            long itemCount = 0;
+            long expectedItems = -1;
+            DateTimeOffset? updatedAt = null;
+            var instance = await table.GetItemAsync(id);
+            var deletedIds = new List<string>();
+            var upsertList = new Dictionary<string, JObject>();
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (instance is not JObject item)
+                {
+                    SendPullFinishedEvent(tableName, itemCount, false);
+                    throw new DatasyncInvalidOperationException("Received item is not an object");
+                }
+
+                string itemId = ServiceSerializer.GetId(item);
+                if (itemId == null)
+                {
+                    SendPullFinishedEvent(tableName, itemCount, false);
+                    throw new DatasyncInvalidOperationException("Received an item without an ID");
+                }
+
+                var compareToDeltaToken = options.AlwaysPullWithDeltaToken || deltaToken.ToUnixTimeMilliseconds() > 0L
+                updatedAt = ServiceSerializer.GetUpdatedAt(item)?.ToUniversalTime();
+                if (compareToDeltaToken && updatedAt > deltaToken)
+                {
+                    // have latest version already
+                    return;
+                }
+
+                var pendingOperation = await OperationsQueue.GetOperationByItemIdAsync(tableName, itemId, cancellationToken).ConfigureAwait(false);
+                if (pendingOperation != null)
+                {
+                    SendPullFinishedEvent(tableName, itemCount, false);
+                    throw new InvalidOperationException("Received an item for which there is a pending operation.");
+                }
+                SendItemWillBeStoredEvent(tableName, itemId, itemCount, expectedItems);
+
+                if (ServiceSerializer.IsDeleted(item))
+                {
+                    deletedIds.Add(itemId);
+                }
+                else
+                {
+                    upsertList.Add(itemId, item);
+                }
+                
+                itemCount++;
+
+                await OfflineStore.DeleteAsync(tableName, deletedIds, cancellationToken).ConfigureAwait(false);
+                deletedIds.ForEach(x => SendItemWasStoredEvent(tableName, x, itemCount, expectedItems));
+                deletedIds.Clear();
+
+                await OfflineStore.UpsertAsync(tableName, upsertList.Values, ignoreMissingColumns: true, cancellationToken).ConfigureAwait(false);
+                upsertList.Keys.ToList().ForEach(x => SendItemWasStoredEvent(tableName, x, itemCount, expectedItems));
+                upsertList.Clear();
+
+                if (updatedAt.HasValue)
+                {
+                    await DeltaTokenStore.SetDeltaTokenAsync(tableName, queryId, updatedAt.Value, cancellationToken).ConfigureAwait(false);
+                    updatedAt = null;
+                }
+            }
+            finally
+            {
+                if (deletedIds.Count > 0)
+                {
+                    await OfflineStore.DeleteAsync(tableName, deletedIds, cancellationToken).ConfigureAwait(false);
+                    deletedIds.ForEach(x => SendItemWasStoredEvent(tableName, x, itemCount, expectedItems));
+                }
+                if (upsertList.Count > 0)
+                {
+                    await OfflineStore.UpsertAsync(tableName, upsertList.Values, ignoreMissingColumns: true, cancellationToken).ConfigureAwait(false);
+                    upsertList.Keys.ToList().ForEach(x => SendItemWasStoredEvent(tableName, x, itemCount, expectedItems));
+                }
+                if (updatedAt.HasValue)
+                {
+                    await DeltaTokenStore.SetDeltaTokenAsync(tableName, queryId, updatedAt.Value, cancellationToken).ConfigureAwait(false);
+                }
+                SendPullFinishedEvent(tableName, itemCount, true);
+            }
+        }
+
         /// <summary>
         /// Pulls the items matching the provided query from the remote table.
         /// </summary>
@@ -968,6 +1076,13 @@ namespace Microsoft.Datasync.Client.Offline
                     }
                 }
             }
+        }
+
+        internal async Task<bool> ItemIsDirtyAsync(string tableName, string itemId, CancellationToken cancellationToken)
+        {
+            await EnsureContextIsInitializedAsync(cancellationToken).ConfigureAwait(false);
+            var operation = await OperationsQueue.GetOperationByItemIdAsync(tableName, itemId, cancellationToken);
+            return operation != null;
         }
 
         /// <summary>

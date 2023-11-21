@@ -120,6 +120,9 @@ namespace Microsoft.Datasync.Client.Table
             return instance;
         }
 
+        public Task PullItemAsync(string id, PullOptions options, CancellationToken cancellationToken = default)
+            => _context.PullItemAsync(TableName, id, options, cancellationToken);
+        
         /// <summary>
         /// Pulls the items matching the provided query from the remote table.
         /// </summary>

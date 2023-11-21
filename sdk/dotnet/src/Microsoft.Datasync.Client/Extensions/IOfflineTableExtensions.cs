@@ -19,6 +19,9 @@ namespace Microsoft.Datasync.Client
     /// </summary>
     public static class IOfflineTableExtensions
     {
+        public static Task PullItemAsync(this IReadOnlyOfflineTable table, string id, CancellationToken cancellationToken = default)
+           => table.PullItemAsync(id, new PullOptions(), cancellationToken);
+
         /// <summary>
         /// Pull all items from the remote table to the offline table.
         /// </summary>

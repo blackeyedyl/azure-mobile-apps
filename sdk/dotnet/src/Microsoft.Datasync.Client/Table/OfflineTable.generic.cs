@@ -132,7 +132,7 @@ namespace Microsoft.Datasync.Client.Table
             JObject inserted = await InsertItemAsync(value, cancellationToken).ConfigureAwait(false);
             Serializer.Deserialize(inserted, instance);
         }
-
+        
         /// <summary>
         /// Pulls the items matching the provided query from the remote table.
         /// </summary>

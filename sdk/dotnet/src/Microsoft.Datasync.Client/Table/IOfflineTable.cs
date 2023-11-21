@@ -51,6 +51,17 @@ namespace Microsoft.Datasync.Client
         Task<JObject> GetItemAsync(string id, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Pulls a single item from the remote table.
+        /// </summary>
+        /// <remarks>Does a push if there is a pending operation for this item.</remarks>
+        /// <param name="id">The id of the item to pull.</param>
+        /// <param name="options">The options used to configure the pull operation.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        /// <returns>A task that completes when the pull operation has finished.</returns>
+        /// <returns></returns>
+        Task PullItemAsync(string id, PullOptions options, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Pulls the items matching the provided query from the remote table.
         /// </summary>
         /// <param name="query">The OData query that determines which items to pull from the remote table.</param>
